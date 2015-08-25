@@ -1,4 +1,4 @@
-'''
+
 import json
 
 from matchinfo import Game
@@ -9,4 +9,4 @@ fileAsString = "".join(file)
 jsonOb = json.loads(fileAsString) #These are about 31k bytes
 
 game = Game(jsonOb)
-'''
+print(item_events(game))

@@ -34,26 +34,27 @@ class Game(object):
         self.winner = self.teamBlueId if self.teamBlue['winner'] else self.teamRedId
         self.participantToTeam = {part['participantId']: part['teamId'] for part in json['participants']}
         self.participantToChamp = {part['participantId']: part['championId'] for part in json['participants']}
-        self.participantToElo = dict()
-        for participantIdentity in json['participantIdentities']:
-            elo = EloType.ANY
-            if 'player' in participantIdentity:
-                player = participantIdentity['player']
-                try:
-                    ans = api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(), summonerId = player['summonerId']))
-                    if self.queueType in ans:
-                        elo = EloType(ans[self.queueType]['tier'])
-                except AnswerException as e:
-                    if e.answer.status == 404:
-                        elo = EloType.UNRANKED
-                    else:
-                        raise
-            self.participantToElo.update({participantIdentity['participantId']: elo})
+        self.participantToElo = defaultdict(lambda:EloType.ANY)
+        self.summonerIdToParticipant = defaultdict(lambda:0)
+        self.summonerIdToParticipant.update({p['player']['summonerId']:p['participantId'] for p in json['participantIdentities'] if 'player' in p})
+        if self.summonerIdToParticipant:
+            try:
+                ans = api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
+                        summonerId = ",".join(str(p) for p in self.summonerIdToParticipant)))
+                summonerToRanking = {summonerId:defaultdict(lambda:EloType.UNRANKED, {QueueType(ranking['queue']):EloType(ranking['tier']) for ranking in ans[str(summonerId)]} 
+                                                                                        if str(summonerId) in ans else dict()) 
+                                    for summonerId in self.summonerIdToParticipant}
+                self.participantToElo.update({self.summonerIdToParticipant[summId]: summonerToRanking[summId][self.queueType] for summId in self.summonerIdToParticipant})
+            except AnswerException as e:
+                if e.answer.status == 404:
+                    self.participantToElo.update({self.summonerIdToParticipant[summonerId]:EloType.UNRANKED for summonerId in self.summonerIdToParticipant})
+                else:
+                    raise
 
 def item_events(game):
     itemEvents = []
     inventoryStacks = defaultdict(list)
-    inventories = defaultdict(partial(defaultdict, int))
+    inventories = defaultdict(lambda:defaultdict(int))
     gold = defaultdict(int)
     for frame in game.timeline:
         gold[game.teamBlueId] = 0
