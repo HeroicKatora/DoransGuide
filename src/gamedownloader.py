@@ -47,7 +47,7 @@ if __name__ == '__main__':
                     gameLog = loadGame(region, gameId)
                     gameData = item_events(gameLog)
                 except AnswerException as e:
-                    if e.answer.status not in [403, 404]:
+                    if e.answer.status not in [403, 404, 503]:
                         raise
                     print(e)
                     continue
