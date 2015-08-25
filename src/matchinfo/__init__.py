@@ -15,7 +15,7 @@ class Winner(Enum):
     Blue = True
     Red = False
 
-ItemBuy = namedtuple("ItemBuy", "itemId eventType participant mapId queueType participantElo goldDiff timeStamp winner")
+ItemBuy = namedtuple("ItemBuy", "itemId eventType champion mapId queueType participantElo goldDiff timeStamp winner")
 
 class Game(object):
     """Wrapper for the data of a game, including its timeline,
@@ -37,8 +37,8 @@ class Game(object):
         self.participantToElo = dict()
         for participantIdentity in json['participantIdentities']:
             elo = EloType.ANY
-            player = participantIdentity['player']
-            if player:
+            if 'player' in participantIdentity:
+                player = participantIdentity['player']
                 try:
                     ans = api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(), summonerId = player['summonerId']))
                     if self.queueType in ans:

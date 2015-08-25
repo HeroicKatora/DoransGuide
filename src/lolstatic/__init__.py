@@ -71,3 +71,5 @@ class FrameEventType(Enum):
 
 frameEventTypes = {x.value for x in FrameEventType}
 itemEventTypes = {x.value for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
+
+relevantVersions = {"5.14.1", "5.11.1"}
