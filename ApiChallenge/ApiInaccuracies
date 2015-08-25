@@ -1,0 +1,4 @@
+
+Frame[participantIds] should map int instead of string
+game[region] should be lowercase?
+Items api should document that from is optional
