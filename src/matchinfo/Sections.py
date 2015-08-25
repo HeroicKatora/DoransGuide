@@ -1,6 +1,6 @@
 '''
 Created on 25.08.2015
-
+This module converts values to the corresponding interval indices
 @author: Katora
 '''
 from bisect import bisect_left

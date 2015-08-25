@@ -3,6 +3,10 @@ import certifi
 import json
 import time
 
+'''
+This class restricts the number of api queries in a short time frame to a certain amount thus avoiding unecessary error messages and annoying error handling.
+It is not thread safe, which should not be a problem since we only have one downloading thread anyways.
+'''
 class RateLimit():
     def __init__(self, maxrate, seconds):
         self.maxrate = maxrate
@@ -28,11 +32,11 @@ class RateLimit():
 def createLimit(rate, seconds):
     return RateLimit(rate, seconds)
     
-limit_fast = createLimit(10, 11.0)
-limit_slow = createLimit(500, 610.0)
+limit_fast = createLimit(3000, 12.0)
+limit_slow = createLimit(180000, 620.0)
 
-key = input("Input your api key ")
-api = urllib3.PoolManager(
+key = input("Input your api key ").strip()# Aks for a key to avoid storing it
+api = urllib3.PoolManager(          # https connector
     cert_reqs='CERT_REQUIRED', # Force certificate check.
     ca_certs=certifi.where(),  # Path to the Certifi bundle.
 )
@@ -55,7 +59,7 @@ def api_request(path, fields = None, **data):
     if answer.status == 429:
         print('Rate limit exceeded, check your key')
     if answer.status >= 500:
-        print('')
+        print('Issues on the server side, hope for the best')
     if answer.status != 200:
         raise AnswerException('Error code returned by api: {err}'.format(err = answer.status), answer)
     return json.loads(answer.data.decode('utf-8'))

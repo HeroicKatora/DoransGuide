@@ -7,6 +7,9 @@ from matchinfo.InventoryHandler import removeItem, buyItem
 from copy import copy
 from matchinfo.Sections import getGoldSection, getTimeSection
 
+'''
+Exported method that loads a game from a region and a game identifier. Returns the game
+'''
 def loadGame(region, gameID):
     gameAnswer = api_request('/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
     return Game(gameAnswer)
@@ -51,6 +54,11 @@ class Game(object):
                 else:
                     raise
 
+'''
+Analyses a whole game, going through the timeline frame by frame, and extracts information about items.
+It returns a list of all item related action that where not undone in the shop directly afterwards.
+Each action features certain stats, see the class ItemBuy for a list of those.
+'''
 def item_events(game):
     itemEvents = []
     inventoryStacks = defaultdict(list)
