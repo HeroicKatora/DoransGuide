@@ -78,4 +78,23 @@ class FrameEventType(Enum):
 frameEventTypes = {x.value for x in FrameEventType}
 ItemEventTypes = {x.value for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
 
+class LaneTypes(Enum):
+    """Wrapper for Lane specifications as returned by the API
+    """
+    MID = 'MID'
+    MIDDLE = 'MIDDLE'
+    TOP = 'TOP'
+    JUNGLE = 'JUNGLE'
+    BOT = 'BOT'
+    BOTTOM = 'BOTTOM'
+    
+class RoleTypes(Enum):
+    """Wrapper for role specifications as returned by the API
+    """
+    DUO = 'DUO'
+    NONE = 'NONE'
+    SOLO = 'SOLO'
+    DUO_CARRY = 'DUO_CARRY'
+    DUO_SUPPORT = 'DUO_SUPPORT'
+    
 relevantVersions = {"5.14.1", "5.11.1"}

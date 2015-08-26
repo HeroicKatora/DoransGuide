@@ -68,7 +68,7 @@ class Downloader():
         print(url)
         with self.lock:
             answer = self.api.request('GET', url, fields = _fields)
-            readdata = answer.read().decode('utf-8')
+            readdata = answer.data.decode('utf-8')
             retryTime = 0
             if 'Retry-After' in answer.headers:
                 retryTime = answer.headers['Retry-After']

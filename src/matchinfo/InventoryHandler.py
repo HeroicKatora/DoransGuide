@@ -22,7 +22,7 @@ class Inventory(object):
         """Removes one item of the specified id from the inventory.
         For example when the player drinks a potion
         """
-        self._items[itemId] = 0
+        self._items[itemId] -= 1
     
     def buyItem(self, itemBoughtId):
         """

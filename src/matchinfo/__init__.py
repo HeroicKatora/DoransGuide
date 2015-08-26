@@ -1,6 +1,7 @@
 import pickle
 from enum import Enum
-from lolstatic import EloType, Items, ItemEventTypes, FrameEventType, QueueType
+from lolstatic import EloType, Items, ItemEventTypes, FrameEventType, QueueType,\
+    RoleTypes, LaneTypes
 from collections import defaultdict, namedtuple
 from functools import partial
 from copy import copy
@@ -19,7 +20,7 @@ def loadGame(region, gameID):
     gameAnswer = dl.api_request('/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), _reg = region, includeTimeline = True)
     #with open("../data/raw/games/{region}_{id}.pkl".format(region = region, id = gameID) , 'wb') as file:
     #    pickle.dump(gameAnswer, file)
-    return Game(gameAnswer, dl)
+    return Game(gameAnswer)
 
 class Winner(Enum):
     """Aliases for the winner. Yes, Blue is the good team
@@ -27,14 +28,14 @@ class Winner(Enum):
     Blue = True
     Red = False
 
-ItemBuy = namedtuple("ItemBuy", "itemId eventType champion mapId queueType participantElo goldDiff timeStamp winner")
+ItemBuy = namedtuple("ItemBuy", "itemId eventType champion mapId queueType participantElo role lane goldDiff timeStamp winner")
 
 class Game(object):
     """Wrapper for the data of a game, including its timeline,
     the teams, the region it took place in, the queue type, the map, the winner
     as well as the elo of the participants
     """
-    def __init__(self, json, dl):
+    def __init__(self, json):
         self.timeline = json['timeline']['frames']
         self.teamBlue = json['teams'][0]
         self.teamRed = json['teams'][1]
@@ -44,11 +45,13 @@ class Game(object):
         self.teamBlueId = self.teamBlue['teamId']
         self.teamRedId = self.teamRed['teamId']
         self.winner = self.teamBlueId if self.teamBlue['winner'] else self.teamRedId
+        self.participants = json['participants']
         self.participantToTeam = {part['participantId']: part['teamId'] for part in json['participants']}
         self.participantToChamp = {part['participantId']: part['championId'] for part in json['participants']}
         self.participantToElo = defaultdict(lambda: EloType.ANY)
         self.summonerIdToParticipant = defaultdict(lambda:0)
         self.summonerIdToParticipant.update({p['player']['summonerId']:p['participantId'] for p in json['participantIdentities'] if 'player' in p})
+        dl = getDownloader(self.region.lower())
         if self.summonerIdToParticipant:
             try:
                 ans = dl.api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
@@ -74,6 +77,10 @@ def item_events(game):
     inventoryStacks = defaultdict(list)
     inventories = defaultdict(Inventory)
     gold = defaultdict(int)
+    role = defaultdict(lambda:RoleTypes.NONE)
+    lane = defaultdict(lambda:LaneTypes.JUNGLE)
+    role.update({part['participantId']:RoleTypes(part['timeline']['role']) for part in game.participants})
+    lane.update({part['participantId']:LaneTypes(part['timeline']['lane']) for part in game.participants})
     for frame in game.timeline:
         gold[game.teamBlueId] = 0
         gold[game.teamRedId] = 0
@@ -82,6 +89,7 @@ def item_events(game):
             gold[game.participantToTeam[int(player)]] += goldInc
         if 'events' not in frame:
             continue
+        allEvents = sorted(frame['events'], key = lambda ev: ev['timestamp'])
         for itemEvent in filter(lambda x: x['eventType'] in ItemEventTypes and x['participantId'], frame['events']):
             participant = itemEvent['participantId']
             inv = inventories[participant]
@@ -89,8 +97,8 @@ def item_events(game):
             eventtype = FrameEventType(itemEvent['eventType'])
             teamId = game.participantToTeam[participant]
             winningTeam = Winner(game.winner == teamId)
-            goldDiff = getGoldSection(gold[game.teamBlueId]-gold[game.teamRedId], teamId == game.teamBlueId)
-            timeStamp = getTimeSection(itemEvent['timestamp'])
+            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( -1 if teamId == game.teamBlueId else 1)
+            timeStamp = itemEvent['timestamp']
             
             if eventtype == FrameEventType.ITEM_DESTROYED:
                 itemId = itemEvent['itemId']
@@ -100,6 +108,8 @@ def item_events(game):
                                            game.mapId,
                                            game.queueType,
                                            game.participantToElo[participant],
+                                           role[participant],
+                                           lane[participant],
                                            goldDiff,
                                            timeStamp,
                                            winningTeam)])
@@ -113,6 +123,8 @@ def item_events(game):
                                            game.mapId,
                                            game.queueType,
                                            game.participantToElo[participant],
+                                           role[participant],
+                                           lane[participant],
                                            goldDiff,
                                            timeStamp,
                                            winningTeam)])
@@ -129,6 +141,8 @@ def item_events(game):
                                      game.mapId,
                                      game.queueType,
                                      game.participantToElo[participant],
+                                     role[participant],
+                                     lane[participant],
                                      goldDiff,
                                      timeStamp,
                                      winningTeam) for item in inv.buyItem(itemId)]

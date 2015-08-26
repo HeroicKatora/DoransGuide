@@ -1,5 +1,6 @@
 
 import json
+import riotapi
 
 from matchinfo import Game
 from matchinfo import item_events

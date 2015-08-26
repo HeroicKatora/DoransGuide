@@ -14,6 +14,7 @@ import time
 import optparse
 import copy
 import shutil
+from threading import Lock
 from matchinfo import loadGame, item_events
 from lolstatic import relevantVersions
 from riotapi import AnswerException
@@ -28,6 +29,7 @@ class MatchDownloader(object):
         self.progress_file = '../data/raw/done.pkl'
         self.failed_file   = '../data/raw/failed.pkl'
         self.data_file     = '../data/raw/data_{time}.pkl'
+        self.threshhold = 10**6      #Number of data sets that lie in memory at the same time
         
         self.ignoreFailedFiles = ignoreFailed
         try:                                                    #Restore progress we made in previous sessions
@@ -79,12 +81,20 @@ class MatchDownloader(object):
                         gamelists.append(product(games, [copy.copy(region)]))
         self.printCompletion()
         
+        callbacklock = Lock()
+        def dataSafeCallback(result):
+            if len(self.datasets) > self.threshhold:
+                if not callbacklock.acquire(blocking = False):
+                    return
+                self.safePartial()
+                callbacklock.release()
+                    
         try:
             with ThreadPool(16) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
                 def make_noise(*args):
                     print("A worker failed: ", *args)
                 for args in (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None):
-                    dl_pool.apply_async(self.download, (args,), error_callback = make_noise)
+                    dl_pool.apply_async(self.download, (args,), callback = dataSafeCallback, error_callback = make_noise)
                 print("Cancel by pressing Return")
                 _ = input()
                 dl_pool.terminate()
@@ -102,6 +112,12 @@ class MatchDownloader(object):
                 pickle.dump(self.datasets, data_fh)
         
         self.printCompletion()
+        
+    def safePartial(self):
+        dataCopy = self.datasets[:]
+        with open(self.data_file.format(time = time.time()), 'bw') as data_fh:
+            pickle.dump(dataCopy, data_fh)
+        self.datasets[:len(dataCopy)] = []
 
 if __name__ == '__main__':
     parser = optparse.OptionParser()
