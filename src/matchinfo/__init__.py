@@ -5,20 +5,25 @@ from collections import defaultdict, namedtuple
 from functools import partial
 from copy import copy
 from .Sections import getGoldSection, getTimeSection
-from .InventoryHandler import removeItem, buyItem
+from .InventoryHandler import Inventory
 from riotapi import AnswerException, getDownloader
 
-'''
-Exported method that loads a game from a region and a game identifier. Returns the game
-'''
 def loadGame(region, gameID):
+    """Loads and parses a game into the then stored data format:
+    For every item that is bought in the game and not undone, keep an entry and store whether that game was won or lost
+    @param region: the region the game took place in
+    @param gameID: the id of the game to load
+    @return: a Game object that contains data about the game
+    """
     dl = getDownloader(region)
-    gameAnswer = dl.api_request(region, '/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
+    gameAnswer = dl.api_request('/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), _reg = region, includeTimeline = True)
     #with open("../data/raw/games/{region}_{id}.pkl".format(region = region, id = gameID) , 'wb') as file:
     #    pickle.dump(gameAnswer, file)
     return Game(gameAnswer, dl)
 
 class Winner(Enum):
+    """Aliases for the winner. Yes, Blue is the good team
+    """
     Blue = True
     Red = False
 
@@ -46,8 +51,8 @@ class Game(object):
         self.summonerIdToParticipant.update({p['player']['summonerId']:p['participantId'] for p in json['participantIdentities'] if 'player' in p})
         if self.summonerIdToParticipant:
             try:
-                ans = dl.api_request(self.region.lower(), "/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
-                        summonerId = ",".join(str(p) for p in self.summonerIdToParticipant)))
+                ans = dl.api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
+                        summonerId = ",".join(str(p) for p in self.summonerIdToParticipant)), _reg = self.region.lower())
                 summonerToRanking = {summonerId:defaultdict(lambda:EloType.UNRANKED, {QueueType(ranking['queue']):EloType(ranking['tier']) for ranking in ans[str(summonerId)]} 
                                                                                         if str(summonerId) in ans else dict()) 
                                     for summonerId in self.summonerIdToParticipant}
@@ -58,15 +63,17 @@ class Game(object):
                 else:
                     raise
 
-'''
-Analyses a whole game, going through the timeline frame by frame, and extracts information about items.
-It returns a list of all item related action that where not undone in the shop directly afterwards.
-Each action features certain stats, see the class ItemBuy for a list of those.
-'''
 def item_events(game):
+    """
+    Analyses a whole game, going through the timeline frame by frame, and extracts information about items.
+    It returns a list of all item related action that where not undone in the shop directly afterwards.
+    Each action features certain stats, see the class ItemBuy for a list of those.
+    @param game: the game to analyze
+    @return: a list of ItemBuy actions
+    """
     itemEvents = []
     inventoryStacks = defaultdict(list)
-    inventories = defaultdict(lambda:defaultdict(int))
+    inventories = defaultdict(Inventory)
     gold = defaultdict(int)
     for frame in game.timeline:
         gold[game.teamBlueId] = 0
@@ -98,7 +105,7 @@ def item_events(game):
                                            timeStamp,
                                            winningTeam)])
                 stack.append(copy(inv))
-                removeItem(inv, itemId)
+                inv.removeItem(itemId)
             elif eventtype == FrameEventType.ITEM_SOLD:
                 itemId = itemEvent['itemId']
                 itemEvents.append([ItemBuy(itemId,
@@ -111,7 +118,7 @@ def item_events(game):
                                            timeStamp,
                                            winningTeam)])
                 stack.append(copy(inv))
-                removeItem(inv, itemId)
+                inv.removeItem(itemId)
             elif eventtype == FrameEventType.ITEM_UNDO:
                 itemEvents.pop()
                 inventories[participant] = stack.pop()
@@ -125,7 +132,7 @@ def item_events(game):
                                      game.participantToElo[participant],
                                      goldDiff,
                                      timeStamp,
-                                     winningTeam) for item in buyItem(inv, itemId)]
+                                     winningTeam) for item in inv.buyItem(itemId)]
                 itemEvents.append(allEvents)
                 stack.append(copy(inv))
     

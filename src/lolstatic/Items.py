@@ -9,8 +9,8 @@ from riotapi import getDownloader
 idToItem = {}
 
 for patch in relevantVersions:
-    dl = getDownloader('na')
-    itemsAnswer = dl.api_request('na', "/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
+    dl = getDownloader()
+    itemsAnswer = dl.api_request("/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
     itemsVersion = itemsAnswer['version']
     nameToItem = itemsAnswer['data']
     idToItem.update({nameToItem[name]['id']: nameToItem[name] for name in nameToItem})

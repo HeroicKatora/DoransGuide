@@ -72,8 +72,11 @@ class MatchDownloader():
         self.printCompletion()
         
         try:
-            with ThreadPool(8) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
-                dl_pool.map_async(self.download, (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None))
+            with ThreadPool(16) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
+                def make_noise(*args):
+                    print("A worker failed: ", *args)
+                dl_pool.map_async(self.download, (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None),
+                                  error_callback = make_noise)
                 _ = input()
                 dl_pool.terminate()
         except Exception:

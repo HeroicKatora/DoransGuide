@@ -2,7 +2,8 @@
 .*
 *.pkl.144*
 
-./data/*
-!./data/raw/workedData.pkl
+# See http://stackoverflow.com/q/5533050
+/data/**/*
+!/data/raw/workedData.pkl
 
 !.gitignore

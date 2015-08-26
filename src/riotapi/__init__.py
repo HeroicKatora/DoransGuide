@@ -25,6 +25,10 @@ class AnswerException(Exception):
         self.answer = answer
 
 class Downloader():
+    """An API python-binding. Requests can be done via #api_request.
+    The class automatically limits the usage of the API to conform to
+    the restrictions of a production key: 3000 rq/10s and 180.000rq/10min
+    """
     def __init__(self):  
         self.limit_fast = RateLimit(3000, 12.0)
         self.limit_slow = RateLimit(180000, 620.0)
@@ -41,15 +45,28 @@ class Downloader():
         )
     
 
-    def api_request(self, region, path, fields = None, **data):
+    def api_request(self, path, _reg = None, _fields = None, **data):
+        """Makes an API request from the server, waiting if necessary to keep below the datacap.
+        
+        @param path: the API path of the requested data, e.g. "/api/lol/tr/v2.2/match/263959903".
+        A leading slash is mandatory
+        @param _reg: a specific server region to request the data from, e.g. 'na'
+        @param _fields: the fields to forward to the raw HTTP-request. leading underscore to
+        prevent conflicts with
+        @param data: additional parameters for the request, e.g. includeTimeline=True
+        @return: a parsed version of the received JSON response
+        @raise AnswerException: when the HTTP status of the response is not 200.
+        """
+        if _reg is None:
+            _reg = 'global'
         self.limit_fast.inc()
         self.limit_slow.inc()
-        url = "https://{region}.api.pvp.net{path}".format(region = region, path = path)
+        url = "https://{region}.api.pvp.net{path}".format(region = _reg, path = path)
         data['api_key'] = self.key
         url += '?' + '&'.join(str(arg) + '=' + str(data[arg]) for arg in data)
         print(url)
         with self.lock:
-            answer = self.api.request('GET', url, fields)
+            answer = self.api.request('GET', url, fields = _fields)
             readdata = answer.read().decode('utf-8')
             retryTime = 0
             if 'Retry-After' in answer.headers:
@@ -68,6 +85,9 @@ class Downloader():
         return json.loads(readdata)
 
 regToDlMap = defaultdict(Downloader)
-def getDownloader(region):
+def getDownloader(region = None):
+    """Gets the downloader for the specified region. If no region is given,
+    returns the global downloader.
+    """
     return regToDlMap[region]
 

@@ -1,6 +1,8 @@
 from enum import Enum
 
 class QueueType(Enum):
+    """Wrapper for the queue-types that can be returned by the API
+    """
     ANY = 'ANY'
     CUSTOM = 'CUSTOM'
     NORMAL_5x5_BLIND = 'NORMAL_5x5_BLIND'
@@ -42,6 +44,8 @@ queueTypes = {x.value for x in QueueType}
 rankedQueues = {x.value for x in {QueueType.RANKED_PREMADE_3x3, QueueType.RANKED_PREMADE_5x5, QueueType.RANKED_SOLO_5x5, QueueType.RANKED_TEAM_3x3, QueueType.RANKED_TEAM_5x5}}
 
 class EloType(Enum):
+    """All elo tiers. ANY stands for "unknown, but ranked".
+    """
     ANY = 'ANY'
     CHALLENGER = 'CHALLENGER'
     MASTER = 'MASTER'
@@ -55,6 +59,8 @@ class EloType(Enum):
 eloTypes = {x.value for x in EloType}
 
 class FrameEventType(Enum):
+    """Wrapper for FrameEventTypes as returned by the API
+    """
     ASCENDED_EVENT = 'ASCENDED_EVENT'
     BUILDING_KILL = 'BUILDING_KILL'
     CAPTURE_POINT = 'CAPTURE_POINT'
