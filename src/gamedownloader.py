@@ -72,8 +72,9 @@ class MatchDownloader():
         
         try:
             with ThreadPool(4) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
-                dl_pool.map(self.download, (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None))
-    
+                dl_pool.map_async(self.download, (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None))
+                _ = input()
+                dl_pool.terminate()
         except Exception:
             traceback.print_exc()
         finally:
