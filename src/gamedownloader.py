@@ -14,6 +14,7 @@ from riotapi import AnswerException
 import time
 import optparse
 from collections import defaultdict
+from multiprocessing.pool import Pool
 
 if __name__ == '__main__':
     progress_file = '../data/raw/workedData.pkl'
@@ -45,33 +46,35 @@ if __name__ == '__main__':
     for patch in relevantVersions:                          # Construct a list of tuples, each containing a game id and a region
         patch = patch[0:4]
         for queue in ['NORMAL_5X5', 'RANKED_SOLO']:
-            for region in ['NA']:#[''' 'BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS',''' 'NA', 'OCE', 'RU', 'TR']:
+            for region in ['BR', 'EUNE', 'EUW', 'KR', 'LAN', 'LAS', 'NA', 'OCE', 'RU', 'TR']:
                 with open("../itemsets/{patch}/{queue}/{region}.json".format(**locals())) as filehandle:
                     games = json.load(filehandle)
                     gamesToDo += len(games)
                     gamelists.append(product(games, [region]))
     printCompletion()
+    
+    def download(gametuple):
+        gameId, region = gametuple
+        region = region.lower()
+        if gameId in gamesdone[region] or (gameId in failedset[region] and ignoreFailedFiles):         #Skip games that are already loaded
+            continue
+        
+        try:
+            gameLog = loadGame(region, gameId)
+            gameData = item_events(gameLog)
+        except AnswerException as e:
+            if e.answer.status not in [403, 404, 503]:      #Certain server statuses are not to be considered a definitive failure for the download routine
+                raise
+            print(e)
+            failedset[region].add(gameId)
+            continue
+        datasets.append(gameData)                           #If everything worked out, add the game and mark it as done
+        gamesdone[region].add(gameId)
+
     try:
-        for games in zip_longest(*gamelists):
-            for game_reg in games:              #Round robin through the different categories to get a good coverage of all possible combinations
-                if game_reg is None:
-                    continue
-                gameId, region = game_reg
-                region = region.lower()
-                if gameId in gamesdone[region] or (gameId in failedset[region] and ignoreFailedFiles):         #Skip games that are already loaded
-                    continue
-                
-                try:
-                    gameLog = loadGame(region, gameId)
-                    gameData = item_events(gameLog)
-                except AnswerException as e:
-                    if e.answer.status not in [403, 404, 503]:      #Certain server statuses are not to be considered a definitive failure for the download routine
-                        raise
-                    print(e)
-                    failedset[region].add(gameId)
-                    continue
-                datasets.append(gameData)                           #If everything worked out, add the game and mark it as done
-                gamesdone[region].add(gameId)
+        with Pool(20) as dl_pool:
+            dl_pool.map(download, (game_reg for game_reg in games for games in zip_longest(*gamelists) if game_reg is not None))             #Round robin through the different categories to get a good coverage of all possible combinations
+
     except Exception as e:
         traceback.print_exc()
     finally:

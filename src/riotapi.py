@@ -2,6 +2,7 @@ import urllib3
 import certifi
 import json
 import time
+from threading import Lock
 
 '''
 This class restricts the number of api queries in a short time frame to a certain amount thus avoiding unecessary error messages and annoying error handling.
@@ -10,21 +11,38 @@ It is not thread safe, which should not be a problem since we only have one down
 class RateLimit():
     def __init__(self, maxrate, seconds):
         self.maxrate = maxrate
+        self.rate = maxrate
+        self.minseconds = seconds
         self.seconds = seconds
         self.timestamps = []
+        self.lock = Lock()
+    
+    def __enter__(self):
+        self.lock.acquire()
+    
+    def __exit(self, type_t, value, traceback):
+        self.lock.release()
     
     def reset(self):
         self.timestamps.clear()
-     
+    '''
+    This method should be called whenever someone tries to access the protected resource
+    It blocks when too many callers tried to access in same timeframe.
+    Every 
+    '''
     def inc(self):
-        if len(self.timestamps) < self.maxrate:
+        with self:
+            while self.timestamps[0]+self.seconds > time.time() or len(self.timestamps) >= self.rate:
+                print("Slowed to avoid over usage")
+                time.sleep(self.timestamps[0]+self.seconds-time.time())
+                self.timestamps.pop(0)
             self.timestamps.append(time.time())
-            return
-        elif self.timestamps[0]+self.seconds > time.time():
-            print("Slowed to avoid over usage")
-            time.sleep(self.timestamps[0]+self.seconds-time.time())
-        self.timestamps.pop(0)
-        self.timestamps.append(time.time())
+    '''
+    This method decreases the rate limit according to the parameters for a while.
+    '''
+    def dec(self):
+        with self:
+            pass
         
     def cancel(self):
         pass
@@ -47,12 +65,11 @@ class AnswerException(Exception):
         self.msg = msg
         self.answer = answer
 
-def api_request(path, fields = None, **data):
+def api_request(region, path, fields = None, **data):
     limit_fast.inc()
     limit_slow.inc()
-    url = "https://global.api.pvp.net"
+    url = "https://{region}.api.pvp.net{path}".format(**locals())
     data['api_key'] = key
-    url += path
     url += '?' + '&'.join(str(arg) + '=' + str(data[arg]) for arg in data)
     print(url)
     answer = api.request('GET', url, fields)

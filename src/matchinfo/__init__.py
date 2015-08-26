@@ -11,7 +11,7 @@ from matchinfo.Sections import getGoldSection, getTimeSection
 Exported method that loads a game from a region and a game identifier. Returns the game
 '''
 def loadGame(region, gameID):
-    gameAnswer = api_request('/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
+    gameAnswer = api_request(region, '/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
     return Game(gameAnswer)
     
 class Winner(Enum):
@@ -42,7 +42,7 @@ class Game(object):
         self.summonerIdToParticipant.update({p['player']['summonerId']:p['participantId'] for p in json['participantIdentities'] if 'player' in p})
         if self.summonerIdToParticipant:
             try:
-                ans = api_request("/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
+                ans = api_request(self.region.lower, "/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
                         summonerId = ",".join(str(p) for p in self.summonerIdToParticipant)))
                 summonerToRanking = {summonerId:defaultdict(lambda:EloType.UNRANKED, {QueueType(ranking['queue']):EloType(ranking['tier']) for ranking in ans[str(summonerId)]} 
                                                                                         if str(summonerId) in ans else dict()) 

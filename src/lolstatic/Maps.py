@@ -9,7 +9,7 @@ import lolstatic
 idToMap = {}
 
 for patch in lolstatic.relevantVersions:
-    mapAnswer = api_request("/api/lol/static-data/euw/v1.2/map", version = patch)
+    mapAnswer = api_request('na', "/api/lol/static-data/euw/v1.2/map", version = patch)
     itemsVersion = mapAnswer['version']
     nameToMap = mapAnswer['data']
     idToMap.update({nameToMap[name]['id']:nameToMap[name] for name in nameToMap})

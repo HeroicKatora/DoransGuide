@@ -9,7 +9,7 @@ import lolstatic
 idToItem = {}
 
 for patch in lolstatic.relevantVersions:
-    itemsAnswer = api_request("/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
+    itemsAnswer = api_request('na', "/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
     itemsVersion = itemsAnswer['version']
     nameToItem = itemsAnswer['data']
     idToItem.update({nameToItem[name]['id']: nameToItem[name] for name in nameToItem})
