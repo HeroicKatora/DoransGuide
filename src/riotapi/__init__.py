@@ -41,7 +41,8 @@ class Downloader():
             cert_reqs='CERT_REQUIRED', # Force certificate check.
             ca_certs=certifi.where(),  # Path to the Certifi bundle.
             maxsize = 3,
-            num_pools = 10
+            num_pools = 10,
+            timeout = 5
         )
     
 

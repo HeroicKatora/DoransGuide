@@ -13,23 +13,31 @@ import traceback
 import time
 import optparse
 import copy
+import shutil
 from matchinfo import loadGame, item_events
 from lolstatic import relevantVersions
 from riotapi import AnswerException
 
-class MatchDownloader():
-    def __init__(self):
+class MatchDownloader(object):
+    def __init__(self, ignoreFailed):
         self.gamesdone = defaultdict(set)
         self.datasets = []
         self.failedset = defaultdict(set)
         self.gamesToDo = 0
         
-        self.progress_file = '../data/raw/workedData.pkl'
+        self.progress_file = '../data/raw/done.pkl'
+        self.failed_file   = '../data/raw/failed.pkl'
+        self.data_file     = '../data/raw/data_{time}.pkl'
+        
+        self.ignoreFailedFiles = ignoreFailed
         try:                                                    #Restore progress we made in previous sessions
             with open(self.progress_file, 'br') as progress_fh:
                 self.gamesdone = pickle.load(progress_fh)
-                self.datasets = pickle.load(progress_fh)
-                self.failedset = pickle.load(progress_fh)
+        except:
+            pass
+        try:
+            with open(self.failed_file, 'br') as failed_fh:
+                self.failedset = pickle.load(failed_fh)
         except:
             pass
     
@@ -75,21 +83,23 @@ class MatchDownloader():
             with ThreadPool(16) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
                 def make_noise(*args):
                     print("A worker failed: ", *args)
-                dl_pool.map_async(self.download, (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None),
-                                  error_callback = make_noise)
+                for args in (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None):
+                    dl_pool.apply_async(self.download, (args,), error_callback = make_noise)
+                print("Cancel by pressing Return")
                 _ = input()
                 dl_pool.terminate()
         except Exception:
             traceback.print_exc()
         finally:
+            now = time.time()
             with open(self.progress_file, 'bw') as progress_fh:              #At the end, dump the progress of the downloader no matter what caused it to stop
                 pickle.dump(self.gamesdone, progress_fh)
-                pickle.dump(self.datasets, progress_fh)
-                pickle.dump(self.failedset, progress_fh)
-            with open("{0}.{1}".format(self.progress_file,time.time()), 'bw') as progress_fh:    #Create a backup file for every snapshot
-                pickle.dump(self.gamesdone, progress_fh)
-                pickle.dump(self.datasets, progress_fh)
-                pickle.dump(self.failedset, progress_fh)
+            shutil.copyfile(self.progress_file, "{0}.{1}".format(self.progress_file,time.time()))
+            with open(self.failed_file, 'bw') as failed_fh:
+                pickle.dump(self.failedset, failed_fh)
+            shutil.copyfile(self.failed_file, "{0}.{1}".format(self.failed_file,time.time()))
+            with open(self.data_file.format(time = now), 'bw') as data_fh:
+                pickle.dump(self.datasets, data_fh)
         
         self.printCompletion()
 
@@ -98,7 +108,7 @@ if __name__ == '__main__':
     parser.add_option("-f", "--failed", action="store_false", dest="ignoreFailedFiles",
                       default=True, help="Retry previously failed game ids")
     parser.add_option("-k", default = False, action="store", dest="key", type="string", help="Retry previously failed game ids")
-    matchDownloader = MatchDownloader()
-    matchDownloader.ignoreFailedFiles = parser.parse_args()[0].ignoreFailedFiles
+    options, args = parser.parse_args()
+    matchDownloader = MatchDownloader(options.ignoreFailedFiles)
     matchDownloader.work()
  

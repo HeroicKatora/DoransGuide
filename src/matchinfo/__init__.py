@@ -58,10 +58,9 @@ class Game(object):
                                     for summonerId in self.summonerIdToParticipant}
                 self.participantToElo.update({self.summonerIdToParticipant[summId]: summonerToRanking[summId][self.queueType] for summId in self.summonerIdToParticipant})
             except AnswerException as e:
-                if e.answer.status == 404:
-                    self.participantToElo.update({self.summonerIdToParticipant[summonerId]:EloType.UNRANKED for summonerId in self.summonerIdToParticipant})
-                else:
+                if e.answer.status != 404:
                     raise
+                self.participantToElo.update({self.summonerIdToParticipant[summonerId]:EloType.UNRANKED for summonerId in self.summonerIdToParticipant})
 
 def item_events(game):
     """
