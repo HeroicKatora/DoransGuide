@@ -1,5 +1,4 @@
-print("Imported", __name__)
-
+import json
 from enum import Enum
 from lolstatic import EloType, Items, ItemEventTypes, FrameEventType, QueueType
 from collections import defaultdict, namedtuple
@@ -15,6 +14,8 @@ Exported method that loads a game from a region and a game identifier. Returns t
 def loadGame(region, gameID):
     dl = getDownloader(region)
     gameAnswer = dl.api_request(region, '/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
+    with open("../data/raw/games/{region}_{id}.json".format(region = region, id = gameID) , 'rb') as file:
+        json.dump(gameAnswer, file)
     return Game(gameAnswer, dl)
 
 class Winner(Enum):

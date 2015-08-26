@@ -1,6 +1,4 @@
-from _collections import defaultdict
 import lolstatic
-print("Imported", __name__)
 
 import urllib3
 import certifi
@@ -10,6 +8,7 @@ import sys
 from optparse import OptionParser
 from threading import Lock
 from .RateLimit import RateLimit
+from collections import defaultdict
 
 parser = OptionParser()
 parser.add_option("-f", "--failed", action="store_false", dest="ignoreFailedFiles",
@@ -37,6 +36,7 @@ class Downloader():
         self.api = urllib3.PoolManager(          # https connector
             cert_reqs='CERT_REQUIRED', # Force certificate check.
             ca_certs=certifi.where(),  # Path to the Certifi bundle.
+            block = True,
             maxsize = 3,
             num_pools = 10
         )

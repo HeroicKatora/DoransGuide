@@ -1,4 +1,3 @@
-print("Imported", __name__)
 from enum import Enum
 
 class QueueType(Enum):

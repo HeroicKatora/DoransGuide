@@ -1,4 +1,3 @@
-print("Imported", __name__)
 '''
 Created on 25.08.2015
 This module converts values to the corresponding interval indices

@@ -1,4 +1,3 @@
-print("Imported", __name__)
 '''
 Created on 26.08.2015
 
