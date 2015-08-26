@@ -1,3 +1,4 @@
+print("Imported", __name__)
 from enum import Enum
 
 class QueueType(Enum):
@@ -70,6 +71,6 @@ class FrameEventType(Enum):
     WARD_PLACED = 'WARD_PLACED'
 
 frameEventTypes = {x.value for x in FrameEventType}
-itemEventTypes = {x.value for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
+ItemEventTypes = {x.value for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
 
 relevantVersions = {"5.14.1", "5.11.1"}

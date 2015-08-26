@@ -1,19 +1,22 @@
-from riotapi import api_request, AnswerException
+print("Imported", __name__)
+
 from enum import Enum
-from lolstatic import EloType, Items, itemEventTypes, FrameEventType, QueueType
+from lolstatic import EloType, Items, ItemEventTypes, FrameEventType, QueueType
 from collections import defaultdict, namedtuple
 from functools import partial
-from matchinfo.InventoryHandler import removeItem, buyItem
 from copy import copy
-from matchinfo.Sections import getGoldSection, getTimeSection
+from .Sections import getGoldSection, getTimeSection
+from .InventoryHandler import removeItem, buyItem
+from riotapi import AnswerException, getDownloader
 
 '''
 Exported method that loads a game from a region and a game identifier. Returns the game
 '''
 def loadGame(region, gameID):
-    gameAnswer = api_request(region, '/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
-    return Game(gameAnswer)
-    
+    dl = getDownloader(region)
+    gameAnswer = dl.api_request(region, '/api/lol/{region}/v2.2/match/{matchId}'.format(region = region, matchId = gameID), includeTimeline = True)
+    return Game(gameAnswer, dl)
+
 class Winner(Enum):
     Blue = True
     Red = False
@@ -25,7 +28,7 @@ class Game(object):
     the teams, the region it took place in, the queue type, the map, the winner
     as well as the elo of the participants
     """
-    def __init__(self, json):
+    def __init__(self, json, dl):
         self.timeline = json['timeline']['frames']
         self.teamBlue = json['teams'][0]
         self.teamRed = json['teams'][1]
@@ -37,12 +40,12 @@ class Game(object):
         self.winner = self.teamBlueId if self.teamBlue['winner'] else self.teamRedId
         self.participantToTeam = {part['participantId']: part['teamId'] for part in json['participants']}
         self.participantToChamp = {part['participantId']: part['championId'] for part in json['participants']}
-        self.participantToElo = defaultdict(lambda:EloType.ANY)
+        self.participantToElo = defaultdict(lambda: EloType.ANY)
         self.summonerIdToParticipant = defaultdict(lambda:0)
         self.summonerIdToParticipant.update({p['player']['summonerId']:p['participantId'] for p in json['participantIdentities'] if 'player' in p})
         if self.summonerIdToParticipant:
             try:
-                ans = api_request(self.region.lower, "/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
+                ans = dl.api_request(self.region.lower(), "/api/lol/{region}/v2.5/league/by-summoner/{summonerId}/entry".format(region = self.region.lower(),
                         summonerId = ",".join(str(p) for p in self.summonerIdToParticipant)))
                 summonerToRanking = {summonerId:defaultdict(lambda:EloType.UNRANKED, {QueueType(ranking['queue']):EloType(ranking['tier']) for ranking in ans[str(summonerId)]} 
                                                                                         if str(summonerId) in ans else dict()) 
@@ -72,7 +75,7 @@ def item_events(game):
             gold[game.participantToTeam[int(player)]] += goldInc
         if 'events' not in frame:
             continue
-        for itemEvent in filter(lambda x: x['eventType'] in itemEventTypes and x['participantId'], frame['events']):
+        for itemEvent in filter(lambda x: x['eventType'] in ItemEventTypes and x['participantId'], frame['events']):
             participant = itemEvent['participantId']
             inv = inventories[participant]
             stack = inventoryStacks[participant]
@@ -124,4 +127,5 @@ def item_events(game):
                                      winningTeam) for item in buyItem(inv, itemId)]
                 itemEvents.append(allEvents)
                 stack.append(copy(inv))
-    return itemEvents
+    
+    return [e for l in itemEvents for e in l]

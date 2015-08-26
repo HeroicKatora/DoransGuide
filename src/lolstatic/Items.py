@@ -1,15 +1,17 @@
+print("Imported", __name__)
 '''
 Created on 25.08.2015
 
 @author: Katora
 '''
-from riotapi import api_request
-import lolstatic
+from . import relevantVersions
+from riotapi import getDownloader
 
 idToItem = {}
 
-for patch in lolstatic.relevantVersions:
-    itemsAnswer = api_request('na', "/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
+for patch in relevantVersions:
+    dl = getDownloader('na')
+    itemsAnswer = dl.api_request('na', "/api/lol/static-data/euw/v1.2/item", itemListData = 'all', version = patch)
     itemsVersion = itemsAnswer['version']
     nameToItem = itemsAnswer['data']
     idToItem.update({nameToItem[name]['id']: nameToItem[name] for name in nameToItem})
