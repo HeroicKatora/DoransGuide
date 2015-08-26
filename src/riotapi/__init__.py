@@ -36,7 +36,6 @@ class Downloader():
         self.api = urllib3.PoolManager(          # https connector
             cert_reqs='CERT_REQUIRED', # Force certificate check.
             ca_certs=certifi.where(),  # Path to the Certifi bundle.
-            block = True,
             maxsize = 3,
             num_pools = 10
         )

@@ -12,6 +12,7 @@ import pickle
 import traceback
 import time
 import optparse
+import copy
 from matchinfo import loadGame, item_events
 from lolstatic import relevantVersions
 from riotapi import AnswerException
@@ -54,7 +55,7 @@ class MatchDownloader():
             if e.answer.status in [403, 404, 503]:
                 self.failedset[region].add(gameId)
             return
-        self.datasets.append(gameData)                           #If everything worked out, add the game and mark it as done
+        self.datasets.extend(gameData)                           #If everything worked out, add the game and mark it as done
         self.gamesdone[region].add(gameId)
     
     
@@ -67,7 +68,7 @@ class MatchDownloader():
                     with open("../itemsets/{patch}/{queue}/{region}.json".format(**locals())) as filehandle:
                         games = json.load(filehandle)
                         self.gamesToDo += len(games)
-                        gamelists.append(product(games, [region]))
+                        gamelists.append(product(games, [copy.copy(region)]))
         self.printCompletion()
         
         try:

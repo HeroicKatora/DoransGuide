@@ -48,8 +48,8 @@ class RateLimit():
     '''
     def dec(self, waitTime):
         with self:
-            self.timestamps[0] = min(time.time()+waitTime, self.timestamps[0])
-            self.rate = min(self.rate//2, 1)
+            self.timestamps[0] = max(time.time()+waitTime, self.timestamps[0])
+            self.rate = max(self.rate//2, 1)
         
     def cancel(self):
         pass
