@@ -73,8 +73,8 @@ class MatchDownloader(object):
         gamelists = []
         for patch in relevantVersions:                          # Construct a list of tuples, each containing a game id and a region
             patch = patch[0:4]
-            for queue in ['NORMAL_5X5', 'RANKED_SOLO']:
-                for region in ['BR', 'EUNE', 'LAN', 'LAS', 'NA', 'OCE']: # 'EUW', 'KR', 'RU', 'TR',
+            for queue in ['NORMAL_5X5', 'RANKED_SOLO']: 
+                for region in ['EUW', 'KR', 'RU', 'TR', 'BR', 'EUNE', 'LAN', 'LAS', 'NA', 'OCE']: #[]:
                     with open("../itemsets/{patch}/{queue}/{region}.json".format(**locals())) as filehandle:
                         games = json.load(filehandle)
                         self.gamesToDo += len(games)

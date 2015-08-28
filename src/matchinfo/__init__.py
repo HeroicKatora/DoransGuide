@@ -97,7 +97,9 @@ def item_events(game):
             eventtype = FrameEventType(itemEvent['eventType'])
             teamId = game.participantToTeam[participant]
             winningTeam = Winner(game.winner == teamId)
-            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( -1 if teamId == game.teamBlueId else 1)
+            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( -1 if teamId == game.teamBlueId else 1)       
+            #FIXME Apparently, it was too late in the night when I coded this line, so the diff is exactly the opposite of what you expect. Can't fix it now, because we already have a few million
+            #data sets with this
             timeStamp = itemEvent['timestamp']
             
             if eventtype == FrameEventType.ITEM_DESTROYED:
