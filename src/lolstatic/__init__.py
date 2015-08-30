@@ -101,7 +101,7 @@ class RoleTypes(Enum):
     DUO_CARRY = 'DUO_CARRY'
     DUO_SUPPORT = 'DUO_SUPPORT'
     
-laneTypes = {x for x in LaneTypes if not x == LaneTypes.ANY}
+roleTypes = {x for x in RoleTypes if not x == RoleTypes.ANY}
 
 class Versions(Enum):
     '''Enum wrapper for version
@@ -109,6 +109,8 @@ class Versions(Enum):
     ANY = 'ANY'
     v5_14_1 = '5.14.1'
     v5_11_1 = '5.11.1'
+
+versions = {x for x in Versions if not x == Versions.ANY}
 
 def getVersionEnum(longversion):
     for version in Versions:
@@ -130,4 +132,7 @@ class RegionTypes(Enum):
     NA = 'NA',
     OCE = 'OCE'
 
+regions = {x for x in RegionTypes if not x == RegionTypes.ANY}
+
 relevantVersions = {"5.14.1", "5.11.1"}
+availableMaps = {x for x in range(11)}
