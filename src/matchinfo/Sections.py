@@ -6,6 +6,7 @@ This module converts values to the corresponding interval indices
 from bisect import bisect_left
 
 possibleGoldValues = [x-7 for x in range(15)]
+anyValueGold = None
 
 def getGoldSection(deltaGold, isTeamBlue):
     """Gets the section number in which the specified gold differential falls
@@ -15,6 +16,9 @@ def getGoldSection(deltaGold, isTeamBlue):
     """
     ind = bisect_left([3000*x for x in filter(lambda a:a, possibleGoldValues)], deltaGold)-7
     return ind if isTeamBlue else -ind
+
+possibleTimeValues = [x for x in range(7)]
+anyValueTime = None
 
 def getTimeSection(time):
     """Gets the time section in which the specific time falls

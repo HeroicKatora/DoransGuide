@@ -40,8 +40,8 @@ class QueueType(Enum):
     COUNTER_PICK = 'COUNTER_PICK'
     BILGEWATER_5x5 = 'BILGEWATER_5x5'
 
-queueTypes = {x.value for x in QueueType}
-rankedQueues = {x.value for x in {QueueType.RANKED_PREMADE_3x3, QueueType.RANKED_PREMADE_5x5, QueueType.RANKED_SOLO_5x5, QueueType.RANKED_TEAM_3x3, QueueType.RANKED_TEAM_5x5}}
+queueTypes = {x for x in QueueType if not x == QueueType.ANY}
+rankedQueues = {x for x in {QueueType.RANKED_PREMADE_3x3, QueueType.RANKED_PREMADE_5x5, QueueType.RANKED_SOLO_5x5, QueueType.RANKED_TEAM_3x3, QueueType.RANKED_TEAM_5x5}}
 
 class EloType(Enum):
     """All elo tiers. ANY stands for "unknown, but ranked".
@@ -56,7 +56,7 @@ class EloType(Enum):
     BRONZE = 'BRONZE'
     UNRANKED = 'UNRANKED'
 
-eloTypes = {x.value for x in EloType}
+eloTypes = {x for x in EloType if not x == EloType.ANY}
 
 class FrameEventType(Enum):
     """Wrapper for FrameEventTypes as returned by the API
@@ -75,26 +75,59 @@ class FrameEventType(Enum):
     WARD_KILL = 'WARD_KILL'
     WARD_PLACED = 'WARD_PLACED'
 
-frameEventTypes = {x.value for x in FrameEventType}
-ItemEventTypes = {x.value for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
+frameEventTypes = {x for x in FrameEventType}
+itemEventTypes = {x for x in {FrameEventType.ITEM_DESTROYED, FrameEventType.ITEM_PURCHASED, FrameEventType.ITEM_SOLD, FrameEventType.ITEM_UNDO}}
 
 class LaneTypes(Enum):
     """Wrapper for Lane specifications as returned by the API
     """
+    ANY = 'ANY'
     MID = 'MID'
     MIDDLE = 'MIDDLE'
     TOP = 'TOP'
     JUNGLE = 'JUNGLE'
     BOT = 'BOT'
     BOTTOM = 'BOTTOM'
-    
+
+laneTypes = {x for x in LaneTypes if not x == LaneTypes.ANY}
+
 class RoleTypes(Enum):
     """Wrapper for role specifications as returned by the API
     """
+    ANY = 'ANY'
     DUO = 'DUO'
     NONE = 'NONE'
     SOLO = 'SOLO'
     DUO_CARRY = 'DUO_CARRY'
     DUO_SUPPORT = 'DUO_SUPPORT'
     
+laneTypes = {x for x in LaneTypes if not x == LaneTypes.ANY}
+
+class Versions(Enum):
+    '''Enum wrapper for version
+    '''
+    ANY = 'ANY'
+    v5_14_1 = '5.14.1'
+    v5_11_1 = '5.11.1'
+
+def getVersionEnum(longversion):
+    for version in Versions:
+        if longversion.startswith(version.value): return version
+    return Versions.ANY
+
+class RegionTypes(Enum):
+    '''Enum wrapper for regions
+    '''
+    ANY = 'ANY',
+    EUW = 'EUW',
+    KR = 'KR',
+    RU = 'RU',
+    TR = 'TR',
+    BR = 'BR',
+    EUNE = 'EUNE',
+    LAN = 'LAN',
+    LAS = 'LAS',
+    NA = 'NA',
+    OCE = 'OCE'
+
 relevantVersions = {"5.14.1", "5.11.1"}

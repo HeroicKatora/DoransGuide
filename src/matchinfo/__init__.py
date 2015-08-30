@@ -1,6 +1,6 @@
 import pickle
 from enum import Enum
-from lolstatic import EloType, Items, ItemEventTypes, FrameEventType, QueueType,\
+from lolstatic import EloType, Items, itemEventTypes, FrameEventType, QueueType,\
     RoleTypes, LaneTypes
 from collections import defaultdict, namedtuple
 from functools import partial
@@ -28,7 +28,7 @@ class Winner(Enum):
     Blue = True
     Red = False
 
-ItemBuy = namedtuple("ItemBuy", "itemId eventType champion mapId queueType participantElo role lane goldDiff timeStamp winner")
+ItemBuy = namedtuple("ItemBuy", "patch region itemId eventType champion mapId queueType participantElo role lane goldDiff timeStamp winner")
 
 class Game(object):
     """Wrapper for the data of a game, including its timeline,
@@ -40,6 +40,7 @@ class Game(object):
         self.teamBlue = json['teams'][0]
         self.teamRed = json['teams'][1]
         self.region = json['region']
+        self.patch = json['matchVersion']
         self.queueType = QueueType(json['queueType'])
         self.mapId = json['mapId']
         self.teamBlueId = self.teamBlue['teamId']
@@ -90,21 +91,21 @@ def item_events(game):
         if 'events' not in frame:
             continue
         allEvents = sorted(frame['events'], key = lambda ev: ev['timestamp'])
-        for itemEvent in filter(lambda x: x['eventType'] in ItemEventTypes and x['participantId'], frame['events']):
+        for itemEvent in filter(lambda x: FrameEventType(x['eventType']) in itemEventTypes and x['participantId'], frame['events']):
             participant = itemEvent['participantId']
             inv = inventories[participant]
             stack = inventoryStacks[participant]
             eventtype = FrameEventType(itemEvent['eventType'])
             teamId = game.participantToTeam[participant]
             winningTeam = Winner(game.winner == teamId)
-            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( -1 if teamId == game.teamBlueId else 1)       
-            #FIXME Apparently, it was too late in the night when I coded this line, so the diff is exactly the opposite of what you expect. Can't fix it now, because we already have a few million
-            #data sets with this
+            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( 1 if teamId == game.teamBlueId else -1)
             timeStamp = itemEvent['timestamp']
             
             if eventtype == FrameEventType.ITEM_DESTROYED:
                 itemId = itemEvent['itemId']
-                itemEvents.append([ItemBuy(itemId,
+                itemEvents.append([ItemBuy(game.patch,
+                                           game.region,
+                                           itemId,
                                            eventtype,
                                            game.participantToChamp[participant],
                                            game.mapId,
@@ -119,7 +120,9 @@ def item_events(game):
                 inv.removeItem(itemId)
             elif eventtype == FrameEventType.ITEM_SOLD:
                 itemId = itemEvent['itemId']
-                itemEvents.append([ItemBuy(itemId,
+                itemEvents.append([ItemBuy(game.patch,
+                                           game.region,
+                                           itemId,
                                            eventtype,
                                            game.participantToChamp[participant],
                                            game.mapId,
@@ -137,7 +140,9 @@ def item_events(game):
                 inventories[participant] = stack.pop()
             else:
                 itemId = itemEvent['itemId']
-                allEvents = [ItemBuy(item,
+                allEvents = [ItemBuy(game.patch,
+                                     game.region,
+                                     item,
                                      eventtype,
                                      game.participantToChamp[participant],
                                      game.mapId,
@@ -150,5 +155,5 @@ def item_events(game):
                                      winningTeam) for item in inv.buyItem(itemId)]
                 itemEvents.append(allEvents)
                 stack.append(copy(inv))
-    
+    #print(len(itemEvents))
     return [e for l in itemEvents for e in l]

@@ -63,3 +63,15 @@ class AnalysisTree():
                 return self.edgeDict[key].result(keyIterator)
             return None
         return self.analyzer.result()
+
+    def allResults(self):
+        '''Returns a dictionary with all the results in this tree
+        '''
+        if self.height:
+            dictionary = dict()
+            for key in self.edgeDict:
+                result = self.edgeDict[key].allResults()
+                dictionary.update({(key, ) + mapping_key: result[mapping_key]} for mapping_key in result)
+            return dictionary
+        return {tuple(): self.analyzer.result()}
+        
