@@ -107,32 +107,38 @@ class Versions(Enum):
     '''Enum wrapper for version
     '''
     ANY = 'ANY'
-    v5_14_1 = '5.14.1'
-    v5_11_1 = '5.11.1'
+    v5_14 = '5.14'
+    v5_11 = '5.11'
 
 versions = {x for x in Versions if not x == Versions.ANY}
 
 def getVersionEnum(longversion):
     for version in Versions:
         if longversion.startswith(version.value): return version
+    print('Unrecognized version {0}, defaulting to any'.format(longversion))
     return Versions.ANY
 
 class RegionTypes(Enum):
     '''Enum wrapper for regions
     '''
-    ANY = 'ANY',
-    EUW = 'EUW',
-    KR = 'KR',
-    RU = 'RU',
-    TR = 'TR',
-    BR = 'BR',
-    EUNE = 'EUNE',
-    LAN = 'LAN',
-    LAS = 'LAS',
-    NA = 'NA',
+    ANY = 'ANY'
+    EUW = 'EUW'
+    KR = 'KR'
+    RU = 'RU'
+    TR = 'TR'
+    BR = 'BR'
+    EUNE = 'EUNE'
+    LAN = 'LAN'
+    LAS = 'LAS'
+    NA = 'NA'
     OCE = 'OCE'
 
 regions = {x for x in RegionTypes if not x == RegionTypes.ANY}
 
+def getRegionEnum(regionstr):
+    for region in RegionTypes:
+        if region.value.lower() == regionstr.lower(): return region
+    print('Unrecognized region {0}, defaulting to any'.format(regionstr))
+    return RegionTypes.ANY
+
 relevantVersions = {"5.14.1", "5.11.1"}
-availableMaps = {x for x in range(11)}

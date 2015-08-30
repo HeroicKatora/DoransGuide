@@ -14,10 +14,13 @@ import time
 import optparse
 import copy
 import shutil
+import os
 from threading import Lock
 from matchinfo import loadGame, item_events
 from lolstatic import relevantVersions
 from riotapi import AnswerException
+
+downloadPath = '../data/raw'
 
 class MatchDownloader(object):
     def __init__(self, ignoreFailed):
@@ -26,9 +29,11 @@ class MatchDownloader(object):
         self.failedset = defaultdict(set)
         self.gamesToDo = 0
         
-        self.progress_file = '../data/raw/done.pkl'
-        self.failed_file   = '../data/raw/failed.pkl'
-        self.data_file     = '../data/raw/data_{time}.pkl'
+        if not os.path.exists(downloadPath):
+            os.makedirs(downloadPath)
+        self.progress_file = os.path.join(downloadPath, 'done.pkl')
+        self.failed_file   = os.path.join(downloadPath, 'failed.pkl')
+        self.data_file     = os.path.join(downloadPath, 'data_{time}.pkl')
         self.threshhold = 10**6      #Number of data sets that lie in memory at the same time
         
         self.ignoreFailedFiles = ignoreFailed

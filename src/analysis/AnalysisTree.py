@@ -2,7 +2,8 @@
 Created on 26.08.2015
 @author: Katora
 '''
-from collections import Iterator
+import itertools
+from collections import Iterator, namedtuple
 from collections import defaultdict
 
 class Analyzer():
@@ -20,58 +21,60 @@ class Analyzer():
         '''
         pass
 
+AnalysisResult = namedtuple('AnalysisResult', 'key value')
+
 class AnalysisTree():
     ''' A tree designed to be quick on the analysis of multi dimensional data which is selected by non-comparable keys and not by range.
     Additionally, every set of keys has a value that is recognized as the any values, a value that means that all keys should be selected.
     Every layer of the tree holds a map from possible values to the trees of the layer below.
     '''
     
-    def __init__(self, keyGeneratorList: list, analyzertype: type(Analyzer), anyvalues: dict = defaultdict(lambda:None)):
-        '''
-        @param keyGeneratorList: A list of generators that generate the keys for specific layers of the tree, needs to be subscriptable
+    def __init__(self, height, analyzertype: type(Analyzer), anyvalues: dict = defaultdict(lambda:None)):
+        '''Constructor to recursively construct an analysis tree
         @param analyzertype: A default constructible type that is later used to analyze the date given to the tree
         @param anyvalues: A dictionary that maps from the remaining tree height to the value which should be used to represent the any key
         '''
         self.edgeDict = dict()
-        self.height = len(keyGeneratorList)
-        self.anyvalue = anyvalues[self.height]
-        if not keyGeneratorList:
+        self.height = height
+        if not self.height:
             self.analyzer = analyzertype()
             return
-        for key in keyGeneratorList[0]:
-            self.edgeDict[key] = AnalysisTree(keyGeneratorList[1:], analyzertype, anyvalues)
+        self.anyvalue = anyvalues[self.height]
+        self.edgeDict = defaultdict(lambda:AnalysisTree(height-1, analyzertype, anyvalues))
+        self.edgeDict[self.anyvalue]
     
-    def analyze(self, keyIterator:Iterator, data):
+    def analyze(self, keyTuple, data):
         '''Passes a data set onwards to the next layer of the tree. The right nodes are determined by the key from the iterable and the anyvalue supplied in the constructor.
         If this node is a leaf, passes the data on to its analyzer.
         '''
         if self.height:
-            keys = {next(iter(keyIterator))}
-            keys = (keys & {presentKey for presentKey in self.edgeDict}) | {self.anyvalue}
-            for key in keys:
-                self.edgeDict[key].analyze(keyIterator, data)
+            key , rest = keyTuple[0], keyTuple[1:]
+            self.edgeDict[key].analyze(rest, data)
+            if not key == self.anyvalue:
+                self.edgeDict[self.anyvalue].analyze(rest, data)
             return
         self.analyzer.analyze(data)
-        pass
     
-    def result(self, keyIterator:Iterator):
+    def result(self, keyTuple):
         '''Fetches the result from a specific key sequence's analyzer
         '''
         if self.height:
-            key = next(iter(keyIterator))
-            if key in self.edgeDict:
-                return self.edgeDict[key].result(keyIterator)
-            return None
+            key, rest = keyTuple[0], keyTuple[1:]
+            try:
+                return self.edgeDict[key].result(rest)
+            except KeyError:
+                return None
         return self.analyzer.result()
 
     def allResults(self):
         '''Returns a dictionary with all the results in this tree
         '''
         if self.height:
-            dictionary = dict()
             for key in self.edgeDict:
-                result = self.edgeDict[key].allResults()
-                dictionary.update({(key, ) + mapping_key: result[mapping_key]} for mapping_key in result)
-            return dictionary
-        return {tuple(): self.analyzer.result()}
+                for result in self.edgeDict[key].allResults():
+                    yield AnalysisResult((key,)+result.key, result.value)
+            return
+        yield AnalysisResult(tuple(), self.analyzer.result())
         
+    def clear(self):
+        self.edgeDict.clear()

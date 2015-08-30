@@ -15,5 +15,5 @@ for patch in relevantVersions:
     nameToItem = itemsAnswer['data']
     idToItem.update({nameToItem[name]['id']: nameToItem[name] for name in nameToItem})
 
-apItemIds = filter(lambda item: idToItem[item]['stats']['PercentMagicDamageMod'] or idToItem[item]['stats']['FlatMagicDamageMod'],
-                   [itemid for itemid in idToItem])
+apItemIds = [x for x in filter(lambda item: 'PercentMagicDamageMod' in idToItem[item]['stats'] or 'FlatMagicDamageMod' in idToItem[item]['stats'],
+                   idToItem)]

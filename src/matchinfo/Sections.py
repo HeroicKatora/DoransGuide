@@ -6,22 +6,22 @@ This module converts values to the corresponding interval indices
 from bisect import bisect_left
 
 possibleGoldValues = [x-7 for x in range(15)]
+goldSections = [3000*x for x in possibleGoldValues if not x == 0]
 anyValueGold = None
 
-def getGoldSection(deltaGold, isTeamBlue):
+def getGoldSection(deltaGold):
     """Gets the section number in which the specified gold differential falls
-    @param deltaGold: the gold diff, GoldTeamBlue - GoldTeamRed
-    @param isTeamBlue: whether the gold section is computed for the red or
-    the blue team.
+    @param deltaGold: the gold diff, GoldTeamSelf - GoldTeamEnemy
     """
-    ind = bisect_left([3000*x for x in filter(lambda a:a, possibleGoldValues)], deltaGold)-7
-    return ind if isTeamBlue else -ind
+    ind = bisect_left(goldSections, deltaGold)-7
+    return ind
 
 possibleTimeValues = [x for x in range(7)]
+timeSections = [1000*600*(x+1) for x in range(6)]
 anyValueTime = None
 
 def getTimeSection(time):
     """Gets the time section in which the specific time falls
     @param time: the current time in seconds since the start of the game
     """
-    return bisect_left([1000*600*(x+1) for x in range(6)], time)
+    return bisect_left(timeSections, time)

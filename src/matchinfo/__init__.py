@@ -67,8 +67,7 @@ class Game(object):
                 self.participantToElo.update({self.summonerIdToParticipant[summonerId]:EloType.UNRANKED for summonerId in self.summonerIdToParticipant})
 
 def item_events(game):
-    """
-    Analyses a whole game, going through the timeline frame by frame, and extracts information about items.
+    """Analyses a whole game, going through the timeline frame by frame, and extracts information about items.
     It returns a list of all item related action that where not undone in the shop directly afterwards.
     Each action features certain stats, see the class ItemBuy for a list of those.
     @param game: the game to analyze
@@ -98,7 +97,9 @@ def item_events(game):
             eventtype = FrameEventType(itemEvent['eventType'])
             teamId = game.participantToTeam[participant]
             winningTeam = Winner(game.winner == teamId)
-            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId] * ( 1 if teamId == game.teamBlueId else -1)
+            goldDiff = gold[game.teamBlueId]-gold[game.teamRedId]
+            if not teamId == game.teamBlueId:
+                goldDiff *= -1
             timeStamp = itemEvent['timestamp']
             
             if eventtype == FrameEventType.ITEM_DESTROYED:
