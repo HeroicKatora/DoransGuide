@@ -239,8 +239,8 @@ doransGuide.directive('champion', ['ChampionInfo', function(ChampionInfo) {
 					var patch = '5.14.1';
 					scope.champName = newChamp.name;
 					scope.champTitle = newChamp.title;
-					scope.champImage = 'http://ddragon.leagueoflegends.com/cdn/' + patch + '/img/champion/' + newChamp.image.full;
-					scope.champSprite = 'http://ddragon.leagueoflegends.com/cdn/' + patch + '/img/sprite/' + newChamp.image.sprite;
+					scope.champImage = 'https://ddragon.leagueoflegends.com/cdn/' + patch + '/img/champion/' + newChamp.image.full;
+					scope.champSprite = 'https://ddragon.leagueoflegends.com/cdn/' + patch + '/img/sprite/' + newChamp.image.sprite;
 					scope.champImgX = newChamp.image.x;
 					scope.champImgY = newChamp.image.y;
 					scope.champImgW = newChamp.image.w;
@@ -268,8 +268,8 @@ doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 					} else {
 						var patch = '5.14.1';
 						scope.itemName = item.name;
-						scope.itemImage = 'http://ddragon.leagueoflegends.com/cdn/' + patch + '/img/item/' + item.image.full;
-						scope.itemSprite = 'http://ddragon.leagueoflegends.com/cdn/' + patch + '/img/sprite/' + item.image.sprite;
+						scope.itemImage = 'https://ddragon.leagueoflegends.com/cdn/' + patch + '/img/item/' + item.image.full;
+						scope.itemSprite = 'https://ddragon.leagueoflegends.com/cdn/' + patch + '/img/sprite/' + item.image.sprite;
 						scope.itemImgX = item.image.x;
 						scope.itemImgY = item.image.y;
 						scope.itemImgW = item.image.w;
