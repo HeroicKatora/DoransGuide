@@ -2,7 +2,7 @@ var dataModule = angular.module('doransData', ['ngResource']);
 
 dataModule.factory('Stats', ['$resource',
 	function($resource) {
-		return $resource('/data/:region/:patch/:map/:queue/:elo/:champion/:item/:role/:lane/data.json',
+		return $resource('data/:region/:patch/:map/:queue/:elo/:champion/:item/:role/:lane/data.json',
 			{
 				region: 'ANY',
 				patch: 'ANY',
@@ -19,7 +19,7 @@ dataModule.factory('Stats', ['$resource',
 
 dataModule.factory('ItemInfo', ['$resource',
 	function($resource) {
-		return $resource('/data/items/na/:patch/en_US.json', {}, {
+		return $resource('data/items/na/:patch/en_US.json', {}, {
 			get: {
                 method: 'GET',
                 transformResponse: function(data, headers){
@@ -32,7 +32,7 @@ dataModule.factory('ItemInfo', ['$resource',
 
 dataModule.factory('ChampionInfo', ['$resource',
 	function($resource) {
-		return $resource('/data/champions/na/:patch/en_US.json', {}, {
+		return $resource('data/champions/na/:patch/en_US.json', {}, {
 			get: {
                 method: 'GET',
                 transformResponse: function(data, headers){
@@ -193,7 +193,7 @@ doransGuide.filter('errorlong', function() {
 doransGuide.filter('displaymodel',
 	function() {
 		return function(type) {
-			return '/templates/inputs/' + type + '.htm';
+			return 'templates/inputs/' + type + '.htm';
 		}
 	}
 );
@@ -217,20 +217,20 @@ doransGuide.filter('dataToColor',
 
 doransGuide.directive('statViewer', function() {
 	return {
-		templateUrl: '/templates/data/dataView.htm'
+		templateUrl: 'templates/data/dataView.htm'
 	};
 });
 
 doransGuide.directive('champion', ['ChampionInfo', function(ChampionInfo) {
 	return {
-		templateUrl: '/templates/data/champion.htm',
+		templateUrl: 'templates/data/champion.htm',
 		link: function(scope, element, attrs) {
 			function updateChamp(newChamp) {
 				if(!newChamp || !newChamp.image) {
 					scope.champName = 'Any';
 					scope.champTitle = 'the Unknown';
-					scope.champImage = '/assets/images/missing.png';
-					scope.champSprite = '/assets/images/missing.png';
+					scope.champImage = 'assets/images/missing.png';
+					scope.champSprite = 'assets/images/missing.png';
 					scope.champImgX = 0;
 					scope.champImgY = 0;
 					scope.champImgW = 48;
@@ -254,7 +254,7 @@ doransGuide.directive('champion', ['ChampionInfo', function(ChampionInfo) {
 
 doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 	return {
-		templateUrl: '/templates/data/item.htm',
+		templateUrl: 'templates/data/item.htm',
 		link: function(scope, element, attrs) {
 			function updateItem(item) {
 					if(!item || !item.image) {
