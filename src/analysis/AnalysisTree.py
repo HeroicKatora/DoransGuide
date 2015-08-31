@@ -82,3 +82,4 @@ class AnalysisTree():
         
     def clear(self):
         self.edgeDict.clear()
+        self.edgeDict[self.anyvalue] = AnalysisTree(self.height-1, self.analyzerType, self.anyvalues)

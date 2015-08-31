@@ -2,8 +2,8 @@
 .*
 *.pkl.144*
 
-# See http://stackoverflow.com/q/5533050
-/data/**/*
+/data/raw/*
+/data/raw.zip
 !/data/raw/workedData.pkl
 
 !.gitignore

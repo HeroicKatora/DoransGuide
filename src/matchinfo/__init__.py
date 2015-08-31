@@ -75,7 +75,7 @@ def item_events(game):
     """
     itemEvents = []
     inventoryStacks = defaultdict(list)
-    inventories = defaultdict(Inventory)
+    inventories = defaultdict(lambda:Inventory(game.patch))
     gold = defaultdict(int)
     role = defaultdict(lambda:RoleTypes.NONE)
     lane = defaultdict(lambda:LaneTypes.JUNGLE)

@@ -6,24 +6,43 @@ Created on 29.08.2015
 from lolstatic import *
 from lolstatic import Champions, Items, Maps
 from analysis.AnalysisTree import AnalysisTree
-from analysis.GameAnalysis import RateAnalyser, mergeTimeGoldSpreadJson, TimeGoldSpread
+from analysis.GameAnalysis import RateAnalyser, mergeTimeGoldSpreadJson, TimeGoldSpread, newTimeGoldSpread
 import os
 import json
 import pickle
 import time
 import gc
+from hashlib import sha256
 from collections import namedtuple
 from analysis import SpecialCaseDefaultDict
 
 KeyTuple = namedtuple('KeyTuple', 'region version mapId queue elo championId itemId role lane')
 
+class SavedObject():
+    def __init__(self, objectToGuard, filepath):
+        self.object = objectToGuard
+        self.filepath = filepath
+        try:
+            with open(filepath, 'br') as file:
+                self.object = pickle.load(file)
+        except Exception:
+            pass
+
+    def __enter__(self):
+        pass
+    
+    def __exit__(self, type, value, traceback):
+        with open(self.filepath, 'bw') as file:
+            pickle.dump(self.object, file)
+
 def sortAllFiles():
     for fileName in os.listdir('../data/raw') :
             if not fileName.startswith('data_'):
                 continue
-            with open(os.path.join('../data/raw', fileName), 'br+') as file:
+            with open(os.path.join('../data/raw', fileName), 'br') as file:
                 listInFile = pickle.load(file)
-                listInFile.sort(key=lambda el:(el.region, el.patch, el.mapId, el.queueType.value, el.participantElo.value, el.champion, el.itemId))
+            listInFile.sort(key=lambda el:(el.region, el.patch, el.mapId, el.queueType.value, el.participantElo.value, el.champion, el.itemId))
+            with open(os.path.join('../data/raw', fileName), 'bw') as file:
                 pickle.dump(listInFile, file)
 
 mappingsForMap = SpecialCaseDefaultDict({1:11})
@@ -48,46 +67,58 @@ def generateDataSetsFromFiles():
                 yield singleSet
     return 
 
-def mapKeyToPath(keyt):
+def mapKeyToResourceIdentifier(keyt):
     folderNameTuple = (keyt.region.value,
                        keyt.version.value,
-                       '.'.join((str(keyt.mapId),
+                       str(keyt.mapId),
                        keyt.queue.value,
-                       keyt.elo.value)),
-                       '.'.join((str(keyt.championId),
+                       keyt.elo.value,
+                       str(keyt.championId),
                        str(keyt.itemId),
                        keyt.role.value,
-                       keyt.lane.value)))
-    return os.path.join("..", "data", *folderNameTuple)
+                       keyt.lane.value)
+    return os.path.join(*folderNameTuple)
 
-def saveToFile(key, timeGoldSpread):
-    path = mapKeyToPath(KeyTuple(*key))
+def mapResourceIdentifierToPathAndFile(rI):
+    '''A file path and file anem is generate for a resource identifier by encoding it in utf-8 and hashing it with sha256.
+    Then the first 2 hexcharacters (8 bits) are taken as the directory name inside of data/analysis and the next 6 bits as
+    the file name (as 2 hex characters). The file extension is json.
+    Thus we split around 1m (2^20) identifiers (nearly) uniformly to 2^14 files leaving 2^6 data sets in one file, which
+    equals around 50-140kB. This should be parseable and at the same time be manageable by git. Cashing might lower the penalty for the client.
+    '''
+    hasher = sha256()
+    hasher.update(bytearray(rI, 'utf-8'))
+    hashnumber = hasher.digest()
+    return (os.path.join('..', 'data', 'analysis', hex(hashnumber[0])[2:]), '{0}.json'.format(hex(hashnumber[1]&0xFC)[2:]))
+
+def loadResourcesFromFile(filepath):
+    '''Loads a resource dictionary from the given file
+    If the file is not found, returns an empty dictionary.
+    '''
+    existingDict = dict()
+    if os.path.isfile(filepath):
+        with open(filepath, 'r') as file:
+            existingDict = json.load(file)
+    return existingDict
+
+def saveResourcesToFile(path, fileName, resourceDict):
+    '''Save the TimeAndSpread to a given file.
+    '''
     if not os.path.exists(path):
         os.makedirs(path)
-    fullPath = os.path.join(path, "data.json")
-    if os.path.exists(fullPath):
-        with open(fullPath, 'r') as existingDataFile:
-            existingData = json.load(existingDataFile)
-            timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, existingData)
-    with open(fullPath, 'w') as file:
-        json.dump(timeGoldSpread, file, check_circular=False)
+    filepath = os.path.join(path, fileName)
+    with open(filepath, 'w') as file:
+        json.dump(resourceDict, file)
 
-class SavedObject():
-    def __init__(self, objectToGuard, filepath):
-        self.object = objectToGuard
-        self.filepath = filepath
-        try:
-            with open(filepath, 'br') as file:
-                self.object = pickle.load(file)
-        except Exception:
-            pass
-
-    def __enter__(self):
-        pass
-    
-    def __exit__(self, type, value, traceback):
-        with open(self.filepath, 'bw') as file:
-            pickle.dump(self.object, file)
+def saveToFile(key, timeGoldSpread):
+    resourceIdentifier = mapKeyToResourceIdentifier(KeyTuple(*key))
+    path, fileName = mapResourceIdentifierToPathAndFile(resourceIdentifier)
+    fullPath = os.path.join(path, fileName)
+    resourceDict = loadResourcesFromFile(fullPath)
+    if resourceIdentifier in dict:
+        timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, resourceDict[resourceIdentifier])
+    dict[resourceIdentifier] = timeGoldSpread
+    saveResourcesToFile(path, fileName, resourceDict)
 
 if __name__ == '__main__':
     
@@ -95,7 +126,7 @@ if __name__ == '__main__':
     sortAllFiles()
     
     dataSets = generateDataSetsFromFiles()
-    keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.idToItem, roleTypes, laneTypes) #region patch map queue champion item role lane
+    keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.apItemIds, roleTypes, laneTypes) #region patch map queue champion item role lane
     anyValues = {1:LaneTypes.ANY, 2:RoleTypes.ANY, 3: 'ANY', 4: 'ANY', 5: EloType.ANY, 6: QueueType.ANY, 7: 'ANY', 8: Versions.ANY, 9: RegionTypes.ANY}
     analysisTree = AnalysisTree(len(keyGeneratorList), RateAnalyser, anyValues)
     
@@ -107,6 +138,7 @@ if __name__ == '__main__':
     oneRuncount = 0
     
     def doPartialSaveAndClear(setsDone):
+        skipCounter.object += setsDone	#We increase the skip counter first to make sure that we don't count a data set twice, even if we skip data set when we crash
         print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
         results = analysisTree.allResults()
         print('Saving data to file, please do not interrupt')
@@ -114,7 +146,6 @@ if __name__ == '__main__':
             saveToFile(resultTuple.key, resultTuple.value)
         analysisTree.clear()
         gc.collect()
-        skipCounter.object += setsDone
         print('Everthing is saved')
     
     def shouldAnalyze(dataSet):
@@ -124,14 +155,15 @@ if __name__ == '__main__':
     with skipCounter:
         lastTime = time.time()
         for data in dataSets:
+            if not shouldAnalyze(data):
+                continue
             if doneCount < skipCounter.object:
                 doneCount += 1
-                continue
-            if not shouldAnalyze(data):
                 continue
             analysisTree.analyze(mapDataToKey(data), data)
             doneCount += 1
             oneRuncount += 1
+            #Increase or decrease this number according to the memory available to you. This is for ~1GiB
             if oneRuncount > 20000:
                 doPartialSaveAndClear(oneRuncount)
                 oneRuncount = 0
@@ -139,6 +171,6 @@ if __name__ == '__main__':
                 print("{0} data sets analyzed".format(doneCount))
                 lastTime = time.time()
         
-        doPartialSaveAndClear()
+        doPartialSaveAndClear(oneRuncount)
         print("All data sets are now analysed")
         print("Analysis saved to disk")

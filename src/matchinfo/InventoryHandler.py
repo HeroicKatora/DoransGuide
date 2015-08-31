@@ -3,20 +3,21 @@ Created on 25.08.2015
 
 @author: Katora
 '''
-from lolstatic import Items
+from lolstatic import Items, getVersionEnum, Versions
 from collections import defaultdict
 
 class Inventory(object):
     """Keeps the state of a player's inventory. Although it doesn't secure
     against inventory overflow
     """
-    def __init__(self):
+    def __init__(self, patchString):
         self._items = defaultdict(int)
+        self.version = getVersionEnum(patchString)
 
     def hasItem(self, itemId):
         """Checks if the player has at least one item with the specied id
         """
-        return self._items[itemId]
+        return self._items[itemId] > 0
     
     def removeItem(self, itemId):
         """Removes one item of the specified id from the inventory.
@@ -31,7 +32,7 @@ class Inventory(object):
         @param itemBoughtId: the item that was bought
         """
         buylist = []
-        item = Items.idToItem[itemBoughtId]
+        item = Items.versionToItems[self.version][itemBoughtId]
         if 'from' in item:
             for component in item['from']:
                 self._useComponentInCraft(int(component), buylist)
@@ -49,7 +50,7 @@ class Inventory(object):
         """
         if not self.hasItem(itemId):
             buylist.append(itemId)
-            item = Items.idToItem[itemId]
+            item = Items.versionToItems[self.version][itemId]
             if 'from' in item:
                 for component in item['from']:
                     self._useComponentInCraft(int(component), buylist)

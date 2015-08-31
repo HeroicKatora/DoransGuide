@@ -64,9 +64,9 @@ class MatchDownloader(object):
             gameLog = loadGame(region, gameId)
             gameData = item_events(gameLog)
         except AnswerException as e:
+            print(e)
             if e.answer.status not in [403, 404, 429, 503, 719]:      #Certain server statuses are not to be considered a definitive failure for the download routine
                 raise
-            print(e)
             if e.answer.status in [403, 404, 503]:
                 self.failedset[region].add(gameId)
             return
@@ -76,7 +76,7 @@ class MatchDownloader(object):
     
     def work(self):
         gamelists = []
-        for patch in relevantVersions:                          # Construct a list of tuples, each containing a game id and a region
+        for patch in relevantVersions:                    # Construct a list of tuples, each containing a game id and a region
             patch = patch[0:4]
             for queue in ['NORMAL_5X5', 'RANKED_SOLO']: 
                 for region in ['EUW', 'KR', 'RU', 'TR', 'BR', 'EUNE', 'LAN', 'LAS', 'NA', 'OCE']: #[]:
@@ -96,11 +96,13 @@ class MatchDownloader(object):
                     
         try:
             with ThreadPool(16) as dl_pool:            #Round robin through the different categories to get a good coverage of all possible combinations
-                def make_noise(*args):
-                    print("A worker failed: ", *args)
-                for args in (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None):
-                    dl_pool.apply_async(self.download, (args,), callback = dataSafeCallback, error_callback = make_noise)
                 print("Cancel by pressing Return")
+                def make_noise(exception):
+                    print("A worker failed: ", exception)
+                    return
+                
+                for gametuple in (game_reg for games in zip_longest(*gamelists) for game_reg in games if game_reg is not None):
+                    dl_pool.apply_async(self.download, (gametuple,), callback = dataSafeCallback, error_callback = make_noise)
                 _ = input()
                 dl_pool.terminate()
         except Exception:
