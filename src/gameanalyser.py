@@ -13,13 +13,25 @@ import pickle
 import time
 import gc
 from collections import namedtuple
+from analysis import SpecialCaseDefaultDict
 
 KeyTuple = namedtuple('KeyTuple', 'region version mapId queue elo championId itemId role lane')
+
+def sortAllFiles():
+    for fileName in os.listdir('../data/raw') :
+            if not fileName.startswith('data_'):
+                continue
+            with open(os.path.join('../data/raw', fileName), 'br+') as file:
+                listInFile = pickle.load(file)
+                listInFile.sort(key=lambda el:(el.region, el.patch, el.mapId, el.queueType.value, el.participantElo.value, el.champion, el.itemId))
+                pickle.dump(listInFile, file)
+
+mappingsForMap = SpecialCaseDefaultDict({1:11})
 
 def mapDataToKey(itemBuy):
     return KeyTuple(getRegionEnum(itemBuy.region), 
             getVersionEnum(itemBuy.patch),
-            itemBuy.mapId,
+            mappingsForMap[itemBuy.mapId],
             itemBuy.queueType,
             itemBuy.participantElo,
             itemBuy.champion,
@@ -39,13 +51,13 @@ def generateDataSetsFromFiles():
 def mapKeyToPath(keyt):
     folderNameTuple = (keyt.region.value,
                        keyt.version.value,
-                       str(keyt.mapId),
+                       '.'.join((str(keyt.mapId),
                        keyt.queue.value,
-                       keyt.elo.value,
-                       str(keyt.championId),
+                       keyt.elo.value)),
+                       '.'.join((str(keyt.championId),
                        str(keyt.itemId),
                        keyt.role.value,
-                       keyt.lane.value)
+                       keyt.lane.value)))
     return os.path.join("..", "data", *folderNameTuple)
 
 def saveToFile(key, timeGoldSpread):
@@ -79,6 +91,9 @@ class SavedObject():
 
 if __name__ == '__main__':
     
+    print('Sorting input files')
+    sortAllFiles()
+    
     dataSets = generateDataSetsFromFiles()
     keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.idToItem, roleTypes, laneTypes) #region patch map queue champion item role lane
     anyValues = {1:LaneTypes.ANY, 2:RoleTypes.ANY, 3: 'ANY', 4: 'ANY', 5: EloType.ANY, 6: QueueType.ANY, 7: 'ANY', 8: Versions.ANY, 9: RegionTypes.ANY}
@@ -91,21 +106,16 @@ if __name__ == '__main__':
     doneCount = 0
     oneRuncount = 0
     
-    def doPartialSaveAndClear():
+    def doPartialSaveAndClear(setsDone):
         print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
         results = analysisTree.allResults()
         print('Saving data to file, please do not interrupt')
-        counter = 0
         for resultTuple in results:
             saveToFile(resultTuple.key, resultTuple.value)
-            counter += 1
-            if counter == 10000:
-                gc.collect()
-                counter = 0
         analysisTree.clear()
-        skipCounter.object += oneRuncount
+        gc.collect()
+        skipCounter.object += setsDone
         print('Everthing is saved')
-        oneRuncount = 0
     
     def shouldAnalyze(dataSet):
         return dataSet.itemId in Items.apItemIds
@@ -123,7 +133,7 @@ if __name__ == '__main__':
             doneCount += 1
             oneRuncount += 1
             if oneRuncount > 20000:
-                doPartialSaveAndClear()
+                doPartialSaveAndClear(oneRuncount)
                 oneRuncount = 0
             if time.time()-lastTime > 10:
                 print("{0} data sets analyzed".format(doneCount))
