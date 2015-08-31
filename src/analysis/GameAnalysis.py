@@ -62,6 +62,6 @@ class RateAnalyser(WinAnalyser):
     def result(self):
         timeAndGoldTable = [self.timeAndGold.result(keys) for keys in product(possibleGoldValues, possibleTimeValues)]
         timeTable = [self.timeAndGold.result(keys) for keys in product((anyValueGold,), possibleTimeValues)]
-        goldTable = [(self.timeAndGold.result(keys), keys) for keys in product(possibleGoldValues, (anyValueTime,))]
+        goldTable = [self.timeAndGold.result(keys) for keys in product(possibleGoldValues, (anyValueTime,))]
         winStatistic = self.timeAndGold.result((anyValueGold, anyValueTime))
         return TimeGoldSpread(timeAndGoldTable, timeTable, goldTable, winStatistic)

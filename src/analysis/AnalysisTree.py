@@ -36,12 +36,14 @@ class AnalysisTree():
         '''
         self.edgeDict = dict()
         self.height = height
+        self.analyzerType = analyzertype
+        self.anyvalues = anyvalues
         if not self.height:
             self.analyzer = analyzertype()
             return
         self.anyvalue = anyvalues[self.height]
-        self.edgeDict = defaultdict(lambda:AnalysisTree(height-1, analyzertype, anyvalues))
-        self.edgeDict[self.anyvalue]
+        self.edgeDict = dict()
+        self.edgeDict[self.anyvalue] = AnalysisTree(self.height-1, self.analyzerType, self.anyvalues)
     
     def analyze(self, keyTuple, data):
         '''Passes a data set onwards to the next layer of the tree. The right nodes are determined by the key from the iterable and the anyvalue supplied in the constructor.
@@ -49,6 +51,8 @@ class AnalysisTree():
         '''
         if self.height:
             key , rest = keyTuple[0], keyTuple[1:]
+            if not key in self.edgeDict:
+                self.edgeDict[key] = AnalysisTree(self.height-1, self.analyzerType, self.anyvalues)
             self.edgeDict[key].analyze(rest, data)
             if not key == self.anyvalue:
                 self.edgeDict[self.anyvalue].analyze(rest, data)

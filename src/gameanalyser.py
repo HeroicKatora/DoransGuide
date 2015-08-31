@@ -11,6 +11,7 @@ import os
 import json
 import pickle
 import time
+import gc
 from collections import namedtuple
 
 KeyTuple = namedtuple('KeyTuple', 'region version mapId queue elo championId itemId role lane')
@@ -57,43 +58,77 @@ def saveToFile(key, timeGoldSpread):
             existingData = json.load(existingDataFile)
             timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, existingData)
     with open(fullPath, 'w') as file:
-        json.dump(timeGoldSpread, file)
+        json.dump(timeGoldSpread, file, check_circular=False)
+
+class SavedObject():
+    def __init__(self, objectToGuard, filepath):
+        self.object = objectToGuard
+        self.filepath = filepath
+        try:
+            with open(filepath, 'br') as file:
+                self.object = pickle.load(file)
+        except Exception:
+            pass
+
+    def __enter__(self):
+        pass
+    
+    def __exit__(self, type, value, traceback):
+        with open(self.filepath, 'bw') as file:
+            pickle.dump(self.object, file)
 
 if __name__ == '__main__':
+    
     dataSets = generateDataSetsFromFiles()
     keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.idToItem, roleTypes, laneTypes) #region patch map queue champion item role lane
     anyValues = {1:LaneTypes.ANY, 2:RoleTypes.ANY, 3: 'ANY', 4: 'ANY', 5: EloType.ANY, 6: QueueType.ANY, 7: 'ANY', 8: Versions.ANY, 9: RegionTypes.ANY}
     analysisTree = AnalysisTree(len(keyGeneratorList), RateAnalyser, anyValues)
     
+    skipCounter = SavedObject(0, "../data/raw/analysisCounter.pkl")
+    
     print("Starting to analyze the data")
     
+    doneCount = 0
+    oneRuncount = 0
+    
     def doPartialSaveAndClear():
-        #print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
+        print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
         results = analysisTree.allResults()
+        print('Saving data to file, please do not interrupt')
+        counter = 0
         for resultTuple in results:
             saveToFile(resultTuple.key, resultTuple.value)
+            counter += 1
+            if counter == 10000:
+                gc.collect()
+                counter = 0
         analysisTree.clear()
+        skipCounter.object += oneRuncount
+        print('Everthing is saved')
+        oneRuncount = 0
     
     def shouldAnalyze(dataSet):
         return dataSet.itemId in Items.apItemIds
     
     print('Ap item ids: ' , Items.apItemIds)
-    lastTime = time.time()
-    doneCount = 0
-    oneRuncount = 0
-    for data in dataSets:
-        if not shouldAnalyze(data):
-            continue
-        analysisTree.analyze(mapDataToKey(data), data)
-        doneCount += 1
-        oneRuncount += 1
-        if oneRuncount > 10000:
-            doPartialSaveAndClear()
-            oneRuncount = 0
-        if time.time()-lastTime > 10:
-            print("{0} data sets analyzed".format(doneCount))
-            lastTime = time.time()
-    
-    doPartialSaveAndClear()
-    print("All data sets are now analysed")
-    print("Analysis saved to disk")
+    with skipCounter:
+        lastTime = time.time()
+        for data in dataSets:
+            if doneCount < skipCounter.object:
+                doneCount += 1
+                continue
+            if not shouldAnalyze(data):
+                continue
+            analysisTree.analyze(mapDataToKey(data), data)
+            doneCount += 1
+            oneRuncount += 1
+            if oneRuncount > 20000:
+                doPartialSaveAndClear()
+                oneRuncount = 0
+            if time.time()-lastTime > 10:
+                print("{0} data sets analyzed".format(doneCount))
+                lastTime = time.time()
+        
+        doPartialSaveAndClear()
+        print("All data sets are now analysed")
+        print("Analysis saved to disk")
