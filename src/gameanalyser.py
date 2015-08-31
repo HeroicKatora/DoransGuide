@@ -15,8 +15,14 @@ import gc
 from hashlib import sha256
 from collections import namedtuple
 from analysis import SpecialCaseDefaultDict
+from analysis.FileGuard import FileGuard
+from multiprocessing.pool import ThreadPool
 
 KeyTuple = namedtuple('KeyTuple', 'region version mapId queue elo championId itemId role lane')
+def keyTupleSortKey(el):
+    '''Returns a new key tuple that can be used to sort the key tuple el in a list
+    '''
+    return (el.region, el.patch, el.mapId, el.queueType.value, el.participantElo.value, el.champion, el.itemId)
 
 class SavedObject():
     def __init__(self, objectToGuard, filepath):
@@ -32,18 +38,11 @@ class SavedObject():
         pass
     
     def __exit__(self, type, value, traceback):
+        dirs = os.path.split(self.filepath)[0]
+        if not os.path.exists(dirs):
+            os.makedirs(dirs, exist_ok = True)
         with open(self.filepath, 'bw') as file:
             pickle.dump(self.object, file)
-
-def sortAllFiles():
-    for fileName in os.listdir('../data/raw') :
-            if not fileName.startswith('data_'):
-                continue
-            with open(os.path.join('../data/raw', fileName), 'br') as file:
-                listInFile = pickle.load(file)
-            listInFile.sort(key=lambda el:(el.region, el.patch, el.mapId, el.queueType.value, el.participantElo.value, el.champion, el.itemId))
-            with open(os.path.join('../data/raw', fileName), 'bw') as file:
-                pickle.dump(listInFile, file)
 
 mappingsForMap = SpecialCaseDefaultDict({1:11})
 
@@ -59,11 +58,15 @@ def mapDataToKey(itemBuy):
             LaneTypes.ANY)  #Can't really handle that much information without a database, so we leave it out atm
 
 def generateDataSetsFromFiles():
-    for fileName in os.listdir('../data/raw') :
+    availableFiles = os.listdir('../data/raw')
+    availableFiles.sort()
+    for fileName in availableFiles:
         if not fileName.startswith('data_'):
             continue
         with open(os.path.join('../data/raw', fileName), 'br') as file:
-            for singleSet in pickle.load(file):
+            setList = pickle.load(file)
+            setList.sort(key = keyTupleSortKey)
+            for singleSet in setList:
                 yield singleSet
     return 
 
@@ -89,7 +92,9 @@ def mapResourceIdentifierToPathAndFile(rI):
     hasher = sha256()
     hasher.update(bytearray(rI, 'utf-8'))
     hashnumber = hasher.digest()
-    return (os.path.join('..', 'data', 'analysis', hex(hashnumber[0])[2:]), '{0}.json'.format(hex(hashnumber[1]&0xFC)[2:]))
+    return (os.path.join('..', 'data', 'analysis', '{0:02x}'.format(hashnumber[0])), '{0:02x}.json'.format(hashnumber[1]&0xFC))
+
+fileguard = FileGuard()
 
 def loadResourcesFromFile(filepath):
     '''Loads a resource dictionary from the given file
@@ -105,7 +110,7 @@ def saveResourcesToFile(path, fileName, resourceDict):
     '''Save the TimeAndSpread to a given file.
     '''
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok = True)
     filepath = os.path.join(path, fileName)
     with open(filepath, 'w') as file:
         json.dump(resourceDict, file)
@@ -114,23 +119,21 @@ def saveToFile(key, timeGoldSpread):
     resourceIdentifier = mapKeyToResourceIdentifier(KeyTuple(*key))
     path, fileName = mapResourceIdentifierToPathAndFile(resourceIdentifier)
     fullPath = os.path.join(path, fileName)
-    resourceDict = loadResourcesFromFile(fullPath)
-    if resourceIdentifier in dict:
-        timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, resourceDict[resourceIdentifier])
-    dict[resourceIdentifier] = timeGoldSpread
-    saveResourcesToFile(path, fileName, resourceDict)
+    with fileguard.fileLock(fullPath):
+        resourceDict = loadResourcesFromFile(fullPath)
+        if resourceIdentifier in resourceDict:
+            timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, resourceDict[resourceIdentifier])
+        resourceDict[resourceIdentifier] = timeGoldSpread
+        saveResourcesToFile(path, fileName, resourceDict)
 
 if __name__ == '__main__':
-    
-    print('Sorting input files')
-    sortAllFiles()
     
     dataSets = generateDataSetsFromFiles()
     keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.apItemIds, roleTypes, laneTypes) #region patch map queue champion item role lane
     anyValues = {1:LaneTypes.ANY, 2:RoleTypes.ANY, 3: 'ANY', 4: 'ANY', 5: EloType.ANY, 6: QueueType.ANY, 7: 'ANY', 8: Versions.ANY, 9: RegionTypes.ANY}
     analysisTree = AnalysisTree(len(keyGeneratorList), RateAnalyser, anyValues)
     
-    skipCounter = SavedObject(0, "../data/raw/analysisCounter.pkl")
+    skipCounter = SavedObject(0, "../data/analysis/analysisCounter.pkl")
     
     print("Starting to analyze the data")
     
@@ -142,8 +145,8 @@ if __name__ == '__main__':
         print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
         results = analysisTree.allResults()
         print('Saving data to file, please do not interrupt')
-        for resultTuple in results:
-            saveToFile(resultTuple.key, resultTuple.value)
+        with ThreadPool() as pool:
+            pool.starmap(saveToFile, results)
         analysisTree.clear()
         gc.collect()
         print('Everthing is saved')
