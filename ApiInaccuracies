@@ -1,4 +1,0 @@
-
-Frame[participantIds] should map int instead of string (the same minor issues appear in other maps, too, when you expect an int as an id it sometimes is a string)
-game[region] should be lowercase?
-Items api should document that from is optional

@@ -1,0 +1,13 @@
+<div class="container">
+	<div class="content">
+		<accordion close-others="true">
+			<div ng-repeat="option in selections">
+				<div ng-include="option | displaymodel"></div>
+			</div>
+		</accordion>
+		<button pull-right ng-click="submit()" class="btn btn-primary">Refresh</button>
+	</div>
+</div>
+<div ng-repeat="data in currentDatas" style="float: left;">
+	<stat-viewer data="data"></stat-viewer>
+</div>

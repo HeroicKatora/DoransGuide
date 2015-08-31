@@ -1,0 +1,17 @@
+<div class="panel panel-default ng-isolate-scope">
+	<h4 class="panel-heading panel-title fullspan">
+		Select a Queue:
+		<span class="pull-right">
+			<select class="form-control" ng-model="pendingConfig.queue[0].id" ng-required>
+				<optgroup ng-repeat="q in queues">
+					<option value="{{q.id}}">{{q.name}}</option>
+				</optgroup>
+			</select>
+			<select class="form-control" ng-model="pendingConfig.elo[0].id" ng-required>
+				<optgroup ng-repeat="e in elos">
+					<option value="{{e.id}}">{{e.name}}</option>
+				</optgroup>
+			</select>
+		</span>
+	</h4>
+</div>

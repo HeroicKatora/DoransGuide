@@ -1,0 +1,8 @@
+<div class="comtainer">
+	<div class="header">
+		<h2>{{ error }} - Sorry: {{ error | errorshort }}</h2
+	</div>
+	<div class="content">
+		<p ng-bind-html="error | errorlong"></p>
+	</div>
+</div>

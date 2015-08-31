@@ -1,0 +1,9 @@
+<div class="container">
+	<table class="statview">
+		<tr class="statrow" ng-repeat="row in data ">
+			<td class="statcell" ng-repeat="cell in row" ng-style="{background-color: cell | dataToColor }">
+				X
+			</td>
+		</tr>
+	</table>
+</div>

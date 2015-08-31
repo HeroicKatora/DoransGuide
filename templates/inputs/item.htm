@@ -1,0 +1,14 @@
+<accordion-group>
+	<accordion-heading class="shrink">
+		<div class="fullspan">
+			Select an Item:
+			<div item-lol lol-item="pendingConfig.item[0]" class="shrink pull-right"></div>
+		</div>
+	</accordion-heading>
+	<div>
+		<input type="text" ng-model="searchItem.name">
+	</div>
+	<div ng-repeat="item in items | filter:searchItem track by $index" class="shrink">
+	 	<item-lol lol-item="item" ng-click="pendingConfig.item[0] = item" class="shrink notext spriteselector"></item-lol>
+	</div>
+</accordion-group>

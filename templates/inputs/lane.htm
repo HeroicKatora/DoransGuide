@@ -1,0 +1,12 @@
+<div class="panel panel-default ng-isolate-scope">
+	<h4 class="panel-heading panel-title fullspan">
+		Select a lane:
+		<span class="pull-right">
+			<select class="form-control" ng-model="pendingConfig.lane[0].id" ng-required>
+				<optgroup ng-repeat="l in lanes">
+					<option value="{{l.id}}">{{l.name}}</option>
+				</optgroup>
+			</select>
+		</span>
+	</h4>
+</div>

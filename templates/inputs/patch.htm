@@ -1,0 +1,12 @@
+<div class="panel panel-default ng-isolate-scope">
+	<h4 class="panel-heading panel-title fullspan">
+		Select the patch:
+		<span class="pull-right">
+			<select class="form-control" ng-model="pendingConfig.patch[0].id" ng-required>
+				<optgroup ng-repeat="p in patches">
+					<option value="{{p.id}}">{{p.name}}</option>
+				</optgroup>
+			</select>
+		</span>
+	</h4>
+</div>

@@ -1,0 +1,14 @@
+<accordion-group>
+	<accordion-heading class="shrink">
+		<div class="fullspan">
+			Select a champion:
+			<div champion lol-champ="pendingConfig.champion[0]" class="shrink pull-right"></div>
+		</div>
+	</accordion-heading>
+	<div>
+		<input type="text" ng-model="searchChampion.name">
+	</div>
+	<div ng-repeat="champ in champions | filter:searchChampion track by $index" class="shrink">
+		<champion lol-champ="champ" ng-click="pendingConfig.champion[0] = champ" class="shrink notext spriteselector"></champion>
+	</div>
+</accordion-group>

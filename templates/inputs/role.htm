@@ -1,0 +1,12 @@
+<div class="panel panel-default ng-isolate-scope">
+	<h4 class="panel-heading panel-title fullspan">
+		Select a role:
+		<span class="pull-right">
+			<select class="form-control" ng-model="pendingConfig.role[0].id" ng-required>
+				<optgroup ng-repeat="r in roles">
+					<option value="{{r.id}}">{{r.name}}</option>
+				</optgroup>
+			</select>
+		</span>
+	</h4>
+</div>
