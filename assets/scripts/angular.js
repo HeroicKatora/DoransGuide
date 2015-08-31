@@ -259,8 +259,8 @@ doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 			function updateItem(item) {
 					if(!item || !item.image) {
 						scope.itemName = 'Any';
-						scope.itemImage = '/assets/images/missing.png';
-						scope.itemSprite = '/assets/images/missing.png';
+						scope.itemImage = 'assets/images/missing.png';
+						scope.itemSprite = 'assets/images/missing.png';
 						scope.itemImgX = 0;
 						scope.itemImgY = 0;
 						scope.itemImgW = 48;
@@ -285,31 +285,31 @@ doransGuide.config(['$routeProvider', '$locationProvider',
 	function ($routeProvider, $locationProvider) {
 		$routeProvider
 		.when('/', {
-			templateUrl: '/templates/index.htm',
+			templateUrl: 'templates/index.htm',
 			controller: 'MainCtrl'
 		})
 		.when('/about', {
-			templateUrl: '/templates/about.htm',
+			templateUrl: 'templates/about.htm',
 			controller: 'MainCtrl'
 		})
 		.when('/test', {
-			templateUrl: '/templates/test.htm',
+			templateUrl: 'templates/test.htm',
 			controller: 'MainCtrl'
 		})
 		.when('/search', {
-			templateUrl: '/templates/search.htm',
+			templateUrl: 'templates/search.htm',
 			controller: 'SearchCtrl'
 		})
 		.when('/search/:item', {
-			templateUrl: '/templates/search.htm',
+			templateUrl: 'templates/search.htm',
 			controller: 'SearchCtrl'
 		})
 		.when('/error/:code', {
-			templateUrl: '/templates/error.htm',
+			templateUrl: 'templates/error.htm',
 			controller: 'ErrorCtrl'
 		})
 		.otherwise({
-			redirectTo: '/error/404'
+			redirectTo: 'error/404'
 		});
 		$locationProvider.html5Mode(true);
 	}
