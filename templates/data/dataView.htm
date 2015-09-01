@@ -1,5 +1,6 @@
 <div class="container">
 	<div class="header" ng-show="title">
+		<h3>{{ title }}</h3>
 	</div>
 	<div class="content" ng-switch on="mode">
 		<div ng-switch-when="TIME_GOLD">
@@ -9,10 +10,11 @@
 			{{ data['timeTable'] }}
 		</div>
 		<div ng-switch-when="GOLD">
-			{{ data['timeTable'] }}
+			{{ data['goldTable'] }}
 		</div>
 		<div ng-switch-default>
-			{{ data.overall.value | percentage }}
+			Overall Winrate:<br>
+			{{datasource.overall.value | percentage}}
 		</div>
 	</div>
 </div>

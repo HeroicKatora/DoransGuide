@@ -81,8 +81,71 @@ dataModule.factory('ChampionInfo', ['$resource',
 	}
 ]);
 
+var doransServices = angular.module('services',[]);
+/**
+ * Transforms one set of data to its color-representation.
+ * The higher the percentage of won games, the more blue the color is, the lower, the red-isher. (yes, that is a word).
+ * Also, with more played games, data becomes more reliable and thus the opacity grows.
+ * 
+ * @param data: An object with the properties 'gamesWon' and 'gamesPlayed'
+ */
+doransServices.filter('dataToColor',
+	function() {
+		return function(data) {
+			if(!data) {
+				return 'white';
+			}
+			won = data.gamesWon;
+			played = data.gamesPlayed;
+			ratio = won/played;
+			impact = played ? 1 - 1/played : 0;
+			blue = 255 * ratio;
+			red = 255 * (1-ratio);
+			return 'rgba(' + red + ', 0.1, ' + blue + ', ' + impact + ')';
+		}
+	}
+);
 
-var doransGuide = angular.module('doransGuide', ['doransData', 'ngRoute', 'ngSanitize', 'ui.bootstrap']);
+/**
+ * A filter that transforms an errorcode to a useful user-output
+ * @param error: the error code
+ */
+doransServices.filter('errorshort', function() {
+	return function(error) {
+		switch(parseInt(error)) {
+			case 404: return "File not found";
+		}
+		return "Unexpected error";
+	};
+});
+/**
+ * A filter that transforms an errorcode to a more extensive error,
+ * including html. Basically it blames the error on Nashor.
+ * 
+ * @param error: the error code
+ */
+doransServices.filter('errorlong', function() {
+	return function(error) {
+		switch(parseInt(error)) {
+			case 404: return 'Baron has eaten the page you are searching for. Go back to <a href="/">the start page</a> and try again.';
+		}
+		return "Unexpected error";
+	};
+});
+/**
+ * Transforms a value into its percentage representation
+ */
+doransServices.filter('percentage', function() {
+	return function(input) {
+		console.log("Invoked!");
+		if (isNaN(input)) {
+			return input;
+		}
+    	return Math.floor(input * 100) + '%';
+	};
+});
+
+var doransGuide = angular.module('doransGuide', ['services', 'doransData', 'ngRoute', 'ngSanitize', 'ui.bootstrap']);
 
 var MODE_BOTH = 0;
 var MODE_TIME = 1;
@@ -203,12 +266,12 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 				Stats.get(config, function(data) {
 					if(!data) return;
 					var title = _.chain(comparedConfigs)
-						.each(function(s) {
+						.map(function(s) {
 							return config[s].name;
 						})
 						.reduce(function(stri, name) {
-							return stri + '|' + name;
-						}, '');
+							return stri + ' | ' + name;
+						}, '').substring(3);
 					var viewconfig = {
 						timeAndGoldTable: {
         					options: {
@@ -235,29 +298,30 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						var time = i % 15;
 						var gold = Math.floor(i / 15);
 						var entry = data.timeAndGoldTable[i];
-						var won = entry ? entry[0] : 0;
-						var played = entry ? entry[1] : 0;
-						viewconfig.timeAndGoldTable.series.push(time, gold, played ? won/played : 0);
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						viewconfig.timeAndGoldTable.series.push(time, gold, played != 0 ? won/played : 0);
 					}
 					for(var i = 0; i < data.timeTable.length; i++) {
 						var entry = data.timeTable[i];
-						var won = entry ? entry[0] : 0;
-						var played = entry ? entry[1] : 0;
-						viewconfig.timeTable.series.push(i, played ? won/played : 0);
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						viewconfig.timeTable.series.push(i, played != 0 ? won/played : 0);
 					}
 					for(var i = 0; i < data.goldTable.length; i++) {
 						var entry = data.goldTable[i];
-						var won = entry ? entry[0] : 0;
-						var played = entry ? entry[1] : 0;
-						viewconfig.goldTable.series.push(i, played ? won/played : 0);
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						viewconfig.goldTable.series.push(i, played != 0 ? won/played : 0);
 					}
 					var entry = data.winStatistic;
-					var won = entry ? entry[0] : 0;
-					var played = entry ? entry[1] : 0;
-					viewconfig.overall.value = played ? won/played : 0;
+					var won = entry ? entry[1] : 0;
+					var played = entry ? entry[0] : 0;
+					viewconfig.overall.value = played != 0 ? won/played : 0;
 					$scope.currentDatas.push({
 						title: title,
-						data: viewconfig});
+						data: viewconfig
+					});
 				});
 			});
 			var statViewer = document.getElementById("dataview")
@@ -277,72 +341,12 @@ doransGuide.controller('ErrorCtrl', ['$scope', '$routeParams',
 	}
 ]);
 /**
- * A filter that transforms an errorcode to a useful user-output
- * @param error: the error code
- */
-doransGuide.filter('errorshort', function() {
-	return function(error) {
-		switch(parseInt(error)) {
-			case 404: return "File not found";
-		}
-		return "Unexpected error";
-	};
-});
-/**
- * A filter that transforms an errorcode to a more extensive error,
- * including html. Basically it blames the error on Nashor.
- * 
- * @param error: the error code
- */
-doransGuide.filter('errorlong', function() {
-	return function(error) {
-		switch(parseInt(error)) {
-			case 404: return 'Baron has eaten the page you are searching for. Go back to <a href="/">the start page</a> and try again.';
-		}
-		return "Unexpected error";
-	};
-});
-/**
- * Transforms a value into its percentage representation
- */
-doransGuide.filter('percentage', function() {
-	return function(input, max) {
-		if (isNaN(input)) {
-			return input;
-		}
-    	return Math.floor((input * 100) / max) + '%';
-	};
-});
-/**
  * Template for a specific input option
  */
 doransGuide.filter('displaymodel',
 	function() {
 		return function(type) {
 			return 'templates/inputs/' + type + '.htm';
-		}
-	}
-);
-/**
- * Transforms one set of data to its color-representation.
- * The higher the percentage of won games, the more blue the color is, the lower, the red-isher. (yes, that is a word).
- * Also, with more played games, data becomes more reliable and thus the opacity grows.
- * 
- * @param data: An object with the properties 'gamesWon' and 'gamesPlayed'
- */
-doransGuide.filter('dataToColor',
-	function() {
-		return function(data) {
-			if(!data) {
-				return 'white';
-			}
-			won = data.gamesWon;
-			played = data.gamesPlayed;
-			ratio = won/played;
-			impact = played ? 1 - 1/played : 0;
-			blue = 255 * ratio;
-			red = 255 * (1-ratio);
-			return 'rgba(' + red + ', 0.1, ' + blue + ', ' + impact + ')';
 		}
 	}
 );
@@ -372,7 +376,7 @@ doransGuide.directive('statViewer', function() {
 		controller: controller,
 		compile: function(element, attrs){
 			if (!attrs.mode) { attrs.mode = 'TIME_GOLD'; }
-		},
+		}
 	};
 });
 /**
@@ -444,7 +448,7 @@ doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 	};
 }]);
 
-doransGuide.directive('heatMap', function(){
+/*doransGuide.directive('heatMap', function(){
 	return {
 	    restrict: 'E',
 	    scope: {
@@ -459,7 +463,7 @@ doransGuide.directive('heatMap', function(){
 	    }
 
 	};
-});
+});*/
 
 doransGuide.config(['$routeProvider', '$locationProvider',
 	function ($routeProvider, $locationProvider) {
