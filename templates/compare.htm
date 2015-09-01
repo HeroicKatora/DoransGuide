@@ -6,53 +6,76 @@
 		Order by:<span class="caret"></span>
 	</button>
 	<ul class="dropdown-menu" role="menu" aria-labelledby="single-button">
-		<li role="menu-item"><a ng-click="mode='OLD'">Winrate in patch 5.11</a></li>
-		<li role="menu-item"><a ng-click="mode='NEW'">Winrate in patch 5.14</a></li>
-		<li role="menu-item"><a ng-click="mode='DIFF'">Change in winrate</a></li>
+		<li role="menu-item"><a href="#" ng-click="mode='OLD'">Winrate in patch 5.11</a></li>
+		<li role="menu-item"><a href="#" ng-click="mode='NEW'">Winrate in patch 5.14</a></li>
+		<li role="menu-item"><a href="#" ng-click="mode='DIFF'">Change in winrate</a></li>
 	</ul>
 </div>
 <div class="container" ng-switch on="mode">
 	<div ng-switch-when="OLD">
 		<table>
-			<tr ng-repeat="item in compareData | orderBy : {{-winRate11}}">
+			<tr>
+				<th>
+				Item
+				</th>
+				<th>
+				Win rate patch 5.11
+				</th>
+				<th>
+				Win rate patch 5.14
+				</th>
+				<th>
+				Difference in win rate
+				</th>
+			</tr>
+			<tr ng-repeat="item in compareData | orderBy : 'winRate11'">
 				<td>
-				{{item.itemId}}
+					<div item-lol lol-item="items[item.itemId]"></div>
 				</td>
 				<td>
-				{{item.winRate11}}
+				{{item.winRate11 | percentage:4}}
 				</td>
 				<td>
-				{{item.winRate14}}
+				{{item.winRate14 | percentage:4}}
+				</td>
+				<td>
+				{{item.diff | percentage:4}}
 				</td>
 			</tr>
 		</table>
 	</div>
 	<div ng-switch-when="NEW">
 		<table>
-			<tr ng-repeat="item in compareData | orderBy : {{-winRate14}}">
+			<tr ng-repeat="item in compareData | orderBy : 'winRate14'">
 				<td>
-				{{item.itemId}}
+					<div item-lol lol-item="items[item.itemId]"></div>
 				</td>
 				<td>
-				{{item.winRate11}}
+				{{item.winRate11 | percentage:4}}
 				</td>
 				<td>
-				{{item.winRate14}}
+				{{item.winRate14 | percentage:4}}
+				</td>
+				<td>
+				{{item.diff | percentage:4}}
 				</td>
 			</tr>
 		</table>
 	</div>
 	<div ng-switch-default>
 		<table>
-			<tr ng-repeat="item in compareData | orderBy : winDiff">
+			<tr ng-repeat="item in compareData | orderBy : 'diff'">
 				<td>
-				{{item.itemId}}
+					<div item-lol lol-item="items[item.itemId]"></div>
 				</td>
 				<td>
-				{{item.winRate11}}
+				{{item.winRate11 | percentage:4}}
 				</td>
 				<td>
-				{{item.winRate14}}
+				{{item.winRate14 | percentage:4}}
+				</td>
+				<td>
+				{{item.diff | percentage:4}}
 				</td>
 			</tr>
 		</table>
