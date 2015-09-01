@@ -351,8 +351,8 @@ doransGuide.controller('ErrorCtrl', ['$scope', '$routeParams',
 /**
  * A controller that fetches data for the direct comparison on the front page
  */
-doransGuide.controller('CompareCtrl', ['$q', '$scope', '$routeParams', '$resource',
-	function($q, $scope, $routeParams, $resource){
+doransGuide.controller('CompareCtrl', ['$q', '$scope', '$routeParams', '$resource', 'ItemInfo',
+	function($q, $scope, $routeParams, $resource, ItemInfo){
 		$scope.mode = $routeParams.mode || 'DIFF';
 		var resource = $resource('data/analysis/ANY/:patch/ANY/ANY.ANY.json');
 		$scope.sortOptions = [{id: "DIFF", name: "Winrate difference"},
@@ -360,10 +360,14 @@ doransGuide.controller('CompareCtrl', ['$q', '$scope', '$routeParams', '$resourc
 								{id: "NEW", name: "Winrate in patch 5.14"}];
 		var patch5_11p = resource.get({patch:'5.11'});
 		var patch5_14p = resource.get({patch:'5.14'});
-		$q.all([patch5_11p.$promise, patch5_14p.$promise])
+		var itemInfo = ItemInfo.get({patch:'5.14.1'});
+		$scope.items = {};
+		$q.all([patch5_11p.$promise, patch5_14p.$promise, itemInfo.$promise])
 			.then(function(result) {
 				var patch5_11 = result[0];
 				var patch5_14 = result[1];
+				var itemInfo = result[2];
+				_.each(itemInfo['data'], function(item){$scope.items[item.id]=item;});
 				var pathForItem = function(patch, item){
 					return 'ANY/' + patch + '/ANY/ANY/ANY/ANY/' +
 								item + '/ANY/ANY';

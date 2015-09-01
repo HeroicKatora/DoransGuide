@@ -13,7 +13,7 @@
 </div>
 <div class="container" ng-switch on="mode">
 	<div ng-switch-when="OLD">
-		<table cellspacing = '20'>
+		<table style = "width:100%">
 			<tr>
 				<th>
 				Item
@@ -30,7 +30,7 @@
 			</tr>
 			<tr ng-repeat="item in compareData | orderBy : 'winRate11'">
 				<td>
-					<div item-lol lol-item="items[item.itemId]"></div>
+					<item-lol lol-item="items[item.itemId]"></item-lol>
 				</td>
 				<td>
 				{{item.winRate11 | percentage:4}}
@@ -45,7 +45,7 @@
 		</table>
 	</div>
 	<div ng-switch-when="NEW">
-		<table cellspacing = '20'>
+		<table style = "width:100%">
 			<tr>
 				<th>
 				Item
@@ -62,7 +62,7 @@
 			</tr>
 			<tr ng-repeat="item in compareData | orderBy : 'winRate14'">
 				<td>
-					<div item-lol lol-item="items[item.itemId]"></div>
+					<item-lol lol-item="items[item.itemId]"></item-lol>
 				</td>
 				<td>
 				{{item.winRate11 | percentage:4}}
@@ -94,7 +94,7 @@
 			</tr>
 			<tr ng-repeat="item in compareData | orderBy : 'diff'">
 				<td>
-					<div item-lol lol-item="items[item.itemId]"></div>
+					<item-lol lol-item="items[item.itemId]"></item-lol>
 				</td>
 				<td>
 				{{item.winRate11 | percentage:4}}
