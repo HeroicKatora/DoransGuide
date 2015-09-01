@@ -4,7 +4,7 @@ Created on 29.08.2015
 @author: Katora
 '''
 from lolstatic import getRegionEnum, getVersionEnum, RoleTypes, LaneTypes,\
-    Versions, RegionTypes, QueueType, EloType
+    Versions, RegionTypes, QueueType, EloType, FrameEventType
 from lolstatic import Champions, Items, Maps
 from analysis.AnalysisTree import AnalysisTree
 from analysis.GameAnalysis import RateAnalyser, mergeTimeGoldSpreadJson,\
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         print('Everthing is saved')
     
     def shouldAnalyze(dataSet):
-        return dataSet.itemId in Items.apItemIds
+        return dataSet.itemId in Items.apItemIds and dataSet.eventType == FrameEventType.ITEM_PURCHASED
     
     print('Ap item ids: ' , Items.apItemIds)
     with skipCounter:
