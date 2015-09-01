@@ -4,13 +4,20 @@
 	</div>
 	<div class="content" ng-switch on="mode">
 		<div ng-switch-when="TIME_GOLD">
-			<highchart config="data['timeAndGoldTable']">
+			<table>
+				<tr ng-repeat="timerow in datasource.timeAndGoldTable.series track by $index">
+					<td ng-repeat="cell in timerow track by $index">
+						{{ cell | percentage:4}}
+					</td>
+				</tr>
+			</table>
+			Missing framework to display data :( It is parsed though (see console)
 		</div>
 		<div ng-switch-when="TIME">
-			{{ data['timeTable'] }}
+			Missing framework to display data :( It is parsed though (see console)
 		</div>
 		<div ng-switch-when="GOLD">
-			{{ data['goldTable'] }}
+			Missing framework to display data :( It is parsed though (see console)
 		</div>
 		<div ng-switch-default>
 			Overall Winrate:<br>

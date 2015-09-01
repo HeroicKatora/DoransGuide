@@ -136,12 +136,13 @@ doransServices.filter('errorlong', function() {
  * Transforms a value into its percentage representation
  */
 doransServices.filter('percentage', function() {
-	return function(input) {
+	return function(input, length) {
+		if(!length) length = 3;
 		console.log("Invoked!");
 		if (isNaN(input)) {
 			return input;
 		}
-    	return Math.floor(input * 100) + '%';
+    	return Math.floor(input * Math.pow(10, length)) / Math.pow(10, length - 2)+ '%';
 	};
 });
 
@@ -267,11 +268,12 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 					if(!data) return;
 					var title = _.chain(comparedConfigs)
 						.map(function(s) {
-							return config[s].name;
+							return "Unknown";
 						})
 						.reduce(function(stri, name) {
 							return stri + ' | ' + name;
-						}, '').substring(3);
+						}, '')
+						.value().substring(3);
 					var viewconfig = {
 						timeAndGoldTable: {
         					options: {
@@ -295,12 +297,15 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						}
 					};
 					for(var i = 0; i < data.timeAndGoldTable.length; i++) {
-						var time = i % 15;
-						var gold = Math.floor(i / 15);
+						var time = i % 7;
+						var gold = Math.floor(i / 7);
 						var entry = data.timeAndGoldTable[i];
 						var won = entry ? entry[1] : 0;
 						var played = entry ? entry[0] : 0;
-						viewconfig.timeAndGoldTable.series.push(time, gold, played != 0 ? won/played : 0);
+						if(time == 0)
+							viewconfig.timeAndGoldTable.series.unshift([]);
+						viewconfig.timeAndGoldTable.series[0].push(played != 0 ? won/played : 0);
+						console.log(viewconfig.timeAndGoldTable.series);
 					}
 					for(var i = 0; i < data.timeTable.length; i++) {
 						var entry = data.timeTable[i];
@@ -322,6 +327,7 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						title: title,
 						data: viewconfig
 					});
+					console.log($scope.currentDatas);
 				});
 			});
 			var statViewer = document.getElementById("dataview")

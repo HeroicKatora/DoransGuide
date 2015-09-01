@@ -35,5 +35,8 @@
 		<div ng-repeat="dataObj in currentDatas track by $index" style="float: left; margin: 20px;">
 			<stat-viewer data="dataObj.data" title="dataObj.title" mode="displaymode"></stat-viewer>
 		</div>
+		<!--div ng-view="currentDatas.length == 0">
+			No data for the selected parameters. (Did you select an AP item? - The other items show up only to display extensibility)
+		</div-->
 	</div>
 </div>
