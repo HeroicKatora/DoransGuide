@@ -3,22 +3,26 @@ Created on 29.08.2015
 
 @author: Katora
 '''
-from lolstatic import *
+from lolstatic import getRegionEnum, getVersionEnum, RoleTypes, LaneTypes,\
+    Versions, RegionTypes, QueueType, EloType
 from lolstatic import Champions, Items, Maps
 from analysis.AnalysisTree import AnalysisTree
-from analysis.GameAnalysis import RateAnalyser, mergeTimeGoldSpreadJson, TimeGoldSpread, newTimeGoldSpread
+from analysis.GameAnalysis import RateAnalyser, mergeTimeGoldSpreadJson,\
+    timeGoldSpreadToJson
 import os
 import json
 import pickle
 import time
 import gc
-from hashlib import sha256
 from collections import namedtuple
 from analysis import SpecialCaseDefaultDict
 from analysis.FileGuard import FileGuard
 from multiprocessing.pool import ThreadPool
 
 KeyTuple = namedtuple('KeyTuple', 'region version mapId queue elo championId itemId role lane')
+ShortKeyTuple = namedtuple('ShortKeyTuple', 'region version mapId queue elo')
+GroupedResults = namedtuple('GroupedResults', 'commonKey resultList')
+
 def keyTupleSortKey(el):
     '''Returns a new key tuple that can be used to sort the key tuple el in a list
     '''
@@ -82,18 +86,6 @@ def mapKeyToResourceIdentifier(keyt):
                        keyt.lane.value)
     return os.path.join(*folderNameTuple)
 
-def mapResourceIdentifierToPathAndFile(rI):
-    '''A file path and file anem is generate for a resource identifier by encoding it in utf-8 and hashing it with sha256.
-    Then the first 2 hexcharacters (8 bits) are taken as the directory name inside of data/analysis and the next 6 bits as
-    the file name (as 2 hex characters). The file extension is json.
-    Thus we split around 1m (2^20) identifiers (nearly) uniformly to 2^14 files leaving 2^6 data sets in one file, which
-    equals around 50-140kB. This should be parseable and at the same time be manageable by git. Cashing might lower the penalty for the client.
-    '''
-    hasher = sha256()
-    hasher.update(bytearray(rI, 'utf-8'))
-    hashnumber = hasher.digest()
-    return (os.path.join('..', 'data', 'analysis', '{0:02x}'.format(hashnumber[0])), '{0:02x}.json'.format(hashnumber[1]&0xFC))
-
 fileguard = FileGuard()
 
 def loadResourcesFromFile(filepath):
@@ -115,23 +107,35 @@ def saveResourcesToFile(path, fileName, resourceDict):
     with open(filepath, 'w') as file:
         json.dump(resourceDict, file)
 
-def saveToFile(key, timeGoldSpread):
-    resourceIdentifier = mapKeyToResourceIdentifier(KeyTuple(*key))
-    path, fileName = mapResourceIdentifierToPathAndFile(resourceIdentifier)
+def shortKeyTupleToPathAndFile(shortKeyt):
+    folderNameTuple = (shortKeyt.region.value,
+                       shortKeyt.version.value,
+                       str(shortKeyt.mapId))
+    fnTuple = (shortKeyt.queue.value,
+                       shortKeyt.elo.value)
+    return (os.path.join('..', 'data', 'analysis', *folderNameTuple), '{0}.{1}.json'.format(*fnTuple))
+
+def saveGroupToFile(groupedResult):
+    commonKey = groupedResult.commonKey
+    resultList = groupedResult.resultList
+    path, fileName = shortKeyTupleToPathAndFile(commonKey)
     fullPath = os.path.join(path, fileName)
     with fileguard.fileLock(fullPath):
         resourceDict = loadResourcesFromFile(fullPath)
-        if resourceIdentifier in resourceDict:
-            timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, resourceDict[resourceIdentifier])
-        resourceDict[resourceIdentifier] = timeGoldSpread
+        for key, timeGoldSpread in resultList:
+            keytuple = KeyTuple(*key)
+            resourceIdentifier = mapKeyToResourceIdentifier(keytuple)
+            if resourceIdentifier in resourceDict:
+                timeGoldSpread = mergeTimeGoldSpreadJson(timeGoldSpread, resourceDict[resourceIdentifier])
+            resourceDict[resourceIdentifier] = timeGoldSpreadToJson(timeGoldSpread)
         saveResourcesToFile(path, fileName, resourceDict)
 
 if __name__ == '__main__':
     
     dataSets = generateDataSetsFromFiles()
-    keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.apItemIds, roleTypes, laneTypes) #region patch map queue champion item role lane
+    #keyGeneratorList = (regions, versions, Maps.idToMap, queueTypes, eloTypes, Champions.idToChampion, Items.apItemIds, roleTypes, laneTypes) #region patch map queue champion item role lane
     anyValues = {1:LaneTypes.ANY, 2:RoleTypes.ANY, 3: 'ANY', 4: 'ANY', 5: EloType.ANY, 6: QueueType.ANY, 7: 'ANY', 8: Versions.ANY, 9: RegionTypes.ANY}
-    analysisTree = AnalysisTree(len(keyGeneratorList), RateAnalyser, anyValues)
+    analysisTree = AnalysisTree(9, RateAnalyser, anyValues)
     
     skipCounter = SavedObject(0, "../data/analysis/analysisCounter.pkl")
     
@@ -140,13 +144,27 @@ if __name__ == '__main__':
     doneCount = 0
     oneRuncount = 0
     
+    def groupResultsChampItem(resultGen):
+        comp = next(resultGen)
+        partial = [comp]
+        for result in resultGen:
+            if not comp[0][4] == result[0][4]:
+                commonKey = ShortKeyTuple(*comp[0][0:5])
+                yield GroupedResults(commonKey, partial)
+                partial = []
+                comp = result
+            partial.append(result)
+        commonKey = ShortKeyTuple(*comp[0][0:5])
+        yield GroupedResults(commonKey, partial)
+    
     def doPartialSaveAndClear(setsDone):
         skipCounter.object += setsDone	#We increase the skip counter first to make sure that we don't count a data set twice, even if we skip data set when we crash
         print(analysisTree.result((RegionTypes.ANY, Versions.ANY, 'ANY', QueueType.ANY, EloType.ANY, 'ANY', 'ANY', RoleTypes.ANY, LaneTypes.ANY)))
         results = analysisTree.allResults()
         print('Saving data to file, please do not interrupt')
+        groupedResults = groupResultsChampItem(results)
         with ThreadPool() as pool:
-            pool.starmap(saveToFile, results)
+            pool.map(saveGroupToFile, groupedResults)
         analysisTree.clear()
         gc.collect()
         print('Everthing is saved')

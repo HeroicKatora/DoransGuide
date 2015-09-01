@@ -12,12 +12,6 @@ from itertools import product
 WinStatistic = namedtuple("WinStatistic", "gameCount gamesWon")
 TimeGoldSpread = namedtuple("TimeGoldSpread", "timeAndGoldTable timeTable goldTable winStatistic")
 
-def newTimeGoldSpread():
-    return TimeGoldSpread([WinStatistics(0,0) for i in range(len(possibleGoldValues)*len(possibleTimeValues))],
-        [WinStatistics(0,0) for i in range(len(possibleTimeValues))],
-        [WinStatistics(0,0) for i in range(len(possibleGoldValues))],
-        WinStatistics(0,0))
-
 def mergeTimeGoldSpreadJson(tgs1, tgs2AsJson):
     if not tgs2AsJson: return tgs1
     tgs2 = TimeGoldSpread(*tgs2AsJson)
@@ -33,10 +27,15 @@ def mergeWinStatisticsJson(ws1, ws2AsJson):
     if not ws1: return ws2
     return WinStatistic(ws1.gameCount+ws2.gameCount, ws1.gamesWon+ws2.gamesWon)
 
-def keyFromDataset(dataset):
-    '''Constructs a key from a given dataset, this for example converts the timestamps to time intervals etc
-    '''
-    pass
+def timeGoldSpreadToJson(tgs):
+    return ([winStatisticToJson(ws) for ws in tgs.timeAndGoldTable],
+            [winStatisticToJson(ws) for ws in tgs.timeTable],
+            [winStatisticToJson(ws) for ws in tgs.goldTable],
+            winStatisticToJson(tgs.winStatistic))
+
+def winStatisticToJson(ws):
+    if not ws: return None
+    return (ws.gameCount, ws.gamesWon)
 
 class WinAnalyser(Analyzer):
     
