@@ -1,0 +1,60 @@
+<div id="title" class="header">
+	<h3>Item comparison</h3>
+</div>
+<div class ="btn-group" dropdown>
+	<button id="compare-mode-button" type="button" class="btn btn-primary" dropdown-toggle>
+		Order by:<span class="caret"></span>
+	</button>
+	<ul class="dropdown-menu" role="menu" aria-labelledby="single-button">
+		<li role="menu-item"><a ng-click="mode='OLD'">Winrate in patch 5.11</a></li>
+		<li role="menu-item"><a ng-click="mode='NEW'">Winrate in patch 5.14</a></li>
+		<li role="menu-item"><a ng-click="mode='DIFF'">Change in winrate</a></li>
+	</ul>
+</div>
+<div class="container" ng-switch on="mode">
+	<div ng-switch-when="OLD">
+		<table>
+			<tr ng-repeat="item in compareData | orderBy : {{-winRate11}}">
+				<td>
+				{{item.itemId}}
+				</td>
+				<td>
+				{{item.winRate11}}
+				</td>
+				<td>
+				{{item.winRate14}}
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div ng-switch-when="NEW">
+		<table>
+			<tr ng-repeat="item in compareData | orderBy : {{-winRate14}}">
+				<td>
+				{{item.itemId}}
+				</td>
+				<td>
+				{{item.winRate11}}
+				</td>
+				<td>
+				{{item.winRate14}}
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div ng-switch-default>
+		<table>
+			<tr ng-repeat="item in compareData | orderBy : winDiff">
+				<td>
+				{{item.itemId}}
+				</td>
+				<td>
+				{{item.winRate11}}
+				</td>
+				<td>
+				{{item.winRate14}}
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>

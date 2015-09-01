@@ -213,6 +213,49 @@ doransGuide.controller('ErrorCtrl', ['$scope', '$routeParams',
 	}
 ]);
 /**
+ * A controller that fetches data for the direct comparison on the front page
+ */
+doransGuide.controller('CompareCtrl', ['$q', '$scope', '$routeParams', '$resource',
+	function($q, $scope, $routeParams, $resource){
+		$scope.mode = $routeParams.mode || 'DIFF';
+		var resource = $resource('data/analysis/ANY/:patch/ANY/ANY.ANY.json');
+		$scope.sortOptions = [{id: "DIFF", name: "Winrate difference"},
+								{id: "OLD", name: "Winrate in patch 5.11"},
+								{id: "NEW", name: "Winrate in patch 5.14"}];
+		var patch5_11p = resource.get({patch:'5.11'});
+		var patch5_14p = resource.get({patch:'5.14'});
+		$q.all([patch5_11p.$promise, patch5_14p.$promise])
+			.then(function(result) {
+				var patch5_11 = result[0];
+				var patch5_14 = result[1];
+				var pathForItem = function(patch, item){
+					return 'ANY/' + patch + '/ANY/ANY/ANY/ANY/' +
+								item + '/ANY/ANY';
+				}
+				var generateWinRate = function(played, won){
+					if(played == 0) return 0;
+					return won / played;
+				}
+				var apItems = [1026, 3078, 3089, 3090, 3092, 3098, 3100, 1056, 1058, 3108, 1063, 1052, 3434, 3115, 3116, 3504, 1076, 3113, 3001, 3003, 3135, 3136, 3744, 3145, 3146, 3023, 3152, 3025, 3027, 3029, 3286, 3290, 3151, 3165, 3040, 3041, 3170, 3430, 3174, 3303, 3048, 3433, 3050, 3431, 3124, 3285, 3057, 3060, 3829, 3191, 3007, 3196, 3197, 3198, 3157]
+				var generateTuple = function(item){
+					var fullPath11 = pathForItem('5.11', item);
+					var fullPath14 = pathForItem('5.14', item);
+					var win11 = patch5_11[fullPath11]['winStatistic'];
+					var win14 = patch5_14[fullPath14]['winStatistic'];
+					return {itemId : item, 
+							winRate11 : generateWinRate(win11[0], win11[1]),
+							winRate14 : generateWinRate(win14[0], win14[1])
+							};
+				}
+				$scope.compareData = _.map(generateTuple, apItems);
+				console.log($scope.compareData)
+				$scope.winDiff = function(itemTup){
+					return itemTup.winRate14-itemTup.winRat11;
+				};
+			});
+	}
+]);
+/**
  * A filter that transforms an errorcode to a useful user-output
  * @param error: the error code
  */
@@ -369,8 +412,8 @@ doransGuide.config(['$routeProvider', '$locationProvider',
 	function ($routeProvider, $locationProvider) {
 		$routeProvider
 		.when('/', {
-			templateUrl: 'templates/index.htm',
-			controller: 'MainCtrl'
+			templateUrl: 'templates/compare.htm',
+			controller: 'CompareCtrl'
 		})
 		.when('/about', {
 			templateUrl: 'templates/about.htm',
