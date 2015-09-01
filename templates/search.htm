@@ -1,13 +1,24 @@
 <div class="container">
+	<div class="header">
+		<h3>Search parameters</h3>
+	</div>
 	<div class="content">
 		<accordion close-others="true">
 			<div ng-repeat="option in selections">
 				<div ng-include="option | displaymodel"></div>
 			</div>
 		</accordion>
-		<button pull-right ng-click="submit()" class="btn btn-primary">Refresh</button>
+		<button ng-click="submit()" class="btn btn-primary pull-right">Refresh</button>
 	</div>
 </div>
-<div ng-repeat="data in currentDatas" style="float: left;">
-	<stat-viewer data="data"></stat-viewer>
+<div style="height: 20px"></div>
+<div id="dataview" class="container">
+	<div class="header">
+		<h3>Search results:</h3>
+	</div>
+	<div class="content">
+		<div ng-repeat="data in currentDatas track by $index" style="float: left;">
+			<stat-viewer data="data"></stat-viewer>
+		</div>
+	</div>
 </div>

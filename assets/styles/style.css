@@ -120,3 +120,9 @@ footer {
   text-align: left;
 }
 /* end of import */
+
+.table-label-y {
+	transform: rotate(-90deg);
+	transform-origin: left top 0;
+	float: left;
+}

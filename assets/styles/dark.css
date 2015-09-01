@@ -53,5 +53,19 @@ body {
 }
 
 .spriteselector:hover {
-	background-color: blue;
+	background-color: #FF860D;
+}
+
+.panel-default > .panel-heading {
+	background-color: #333;
+	color: inherit;
+	border-color: #222;
+}
+
+.panel-default {
+	border-color: #111;
+}
+
+.panel-body {
+	background-color: #1E1E1E;
 }

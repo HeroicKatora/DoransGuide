@@ -5,8 +5,8 @@
 			<div item-lol lol-item="pendingConfig.item[0]" class="shrink pull-right"></div>
 		</div>
 	</accordion-heading>
-	<div>
-		<input type="text" ng-model="searchItem.name">
+	<div class="pull-right">
+		<span>Filter: </span><input type="text" ng-model="searchItem.name" class="form-control">
 	</div>
 	<div ng-repeat="item in items | filter:searchItem track by $index" class="shrink">
 	 	<item-lol lol-item="item" ng-click="pendingConfig.item[0] = item" class="shrink notext spriteselector"></item-lol>

@@ -5,8 +5,8 @@
 			<div champion lol-champ="pendingConfig.champion[0]" class="shrink pull-right"></div>
 		</div>
 	</accordion-heading>
-	<div>
-		<input type="text" ng-model="searchChampion.name">
+	<div class="pull-right">
+		Filter: <input type="text" ng-model="searchChampion.name" class="form-control">
 	</div>
 	<div ng-repeat="champ in champions | filter:searchChampion track by $index" class="shrink">
 		<champion lol-champ="champ" ng-click="pendingConfig.champion[0] = champ" class="shrink notext spriteselector"></champion>

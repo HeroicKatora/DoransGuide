@@ -1,9 +1,29 @@
-<div class="container">
-	<table class="statview">
-		<tr class="statrow" ng-repeat="row in data ">
-			<td class="statcell" ng-repeat="cell in row" ng-style="{background-color: cell | dataToColor }">
-				X
-			</td>
-		</tr>
-	</table>
+<div class="container" ng-switch on="mode">
+	<!--- items: The data in the format
+			dataDTO = (games_won, games_played)
+			itemsDTO = {
+				timeAndGoldTable: [[dataDTO for timeSlice] for goldSlice],
+				goldTable: [dataDTO for goldSlice],
+				timeTable: [dataDTO for timeSlice],
+				winStatistic: dataDTO
+			}
+		-->
+	<div ng-switch-when="TIME_GOLD">
+		<div class="table-label-y">
+		<table class="statview">
+			<tr class="statrow" ng-repeat="row in data.timeAndGoldTable">
+				<td class="statcell" ng-repeat="cell in row" ng-style="{background-color: cell | dataToColor }">
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div ng-switch-when="TIME">
+		TIME ONLY
+	</div>
+	<div ng-switch-when="GOLD">
+		GOLD ONLY
+	</div>
+	<div ng-switch-default>
+		OVERALL
+	</div>
 </div>

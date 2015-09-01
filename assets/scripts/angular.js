@@ -1,35 +1,72 @@
-var dataModule = angular.module('doransData', ['ngResource']);
+var selections = ['region', 'map', 'queue', 'champion', 'item'];
+var allSelections = ['region', 'map', 'queue', 'elo', 'champion', 'item', 'role', 'lane', 'patch'];
+/** Utility implementation for named tuples */
+function namedtuple(fields) {
+    return function(arr) {
+        var obj = { };
 
+        _(_.zip(fields, arr))
+        .each(function(i) {
+        	obj[i[0]] = i[1];
+        });
+
+        return obj;
+    };
+};
+
+var Configuration = namedtuple(allSelections);
+
+var dataModule = angular.module('doransData', ['ngResource']);
+/**
+ * Our factory for statistics. Offers a get method
+ *
+ * @param config: a Configuration object
+ * @return: The statistic to the configuration
+ */
 dataModule.factory('Stats', ['$resource',
 	function($resource) {
-		return $resource('data/:region/:patch/:map/:queue/:elo/:champion/:item/:role/:lane/data.json',
-			{
-				region: 'ANY',
-				patch: 'ANY',
-				map: 'ANY',
-				queue: 'ANY',
-				champion: 'ANY',
-				item: 'ANY',
-				role: 'ANY',
-				lane: 'ANY'
+		return {
+			get: function(config) {
+				var resource = $resource('data/analysis/:region/:patch/:map/:queue.:elo.json');
+				var fullpath = config.region + '/' +
+						config.patch + '/' +
+						config.map + '/' +
+						config.queue + '/' +
+						config.elo + '/' +
+						config.champion + '/' +
+						config.item + '/' +
+						config.role + '/' +
+						config.lane;
+				var response = resource.get({region: config.region,
+											 patch: config.patch,
+											 map: config.map,
+											 queue: config.queue,
+											 elo: config.elo});
+				var data = response[fullpath];
+				console.log(data);
+				return data;
 			}
-		);
+		}
 	}
 ]);
-
+/**
+ * ItemInfo factory. Used to get the correct items for the selected patch.
+ */
 dataModule.factory('ItemInfo', ['$resource',
 	function($resource) {
 		return $resource('data/items/na/:patch/en_US.json', {}, {
 			get: {
                 method: 'GET',
-                transformResponse: function(data, headers){
+                transformResponse: function(data, headers) {
                 	return angular.fromJson(data);
                 }
             }
 		});
 	}
 ]);
-
+/**
+ * ChampionInfo factory. Same as ItemInfo for champions
+ */
 dataModule.factory('ChampionInfo', ['$resource',
 	function($resource) {
 		return $resource('data/champions/na/:patch/en_US.json', {}, {
@@ -49,24 +86,6 @@ var doransGuide = angular.module('doransGuide', ['doransData', 'ngRoute', 'ngSan
 var MODE_BOTH = 0;
 var MODE_TIME = 1;
 var MODE_GOLD = 2;
-
-var selections = ['region', 'map', 'queue', 'champion', 'item'];
-var allSelections = ['region', 'map', 'queue', 'elo', 'champion', 'item', 'role', 'lane', 'patch'];
-
-function namedtuple(fields) {
-    return function(arr) {
-        var obj = { };
-
-        _(_.zip(fields, arr))
-        .each(function(i) {
-        	obj[i[0]] = i[1];
-        });
-
-        return obj;
-    };
-};
-
-var Configuration = namedtuple(allSelections);
 
 function cartesianProductOf() {
     return _.reduce(arguments, function(a, b) {
@@ -89,7 +108,18 @@ function inputToConfigs(input) {
 }
 
 doransGuide.controller('MainCtrl', ['$scope', function ($scope) {}]);
-
+/**
+ * The controller that is used in /search/.... Additional path parameters are accepted, each
+ * mapped to the respectitive input.
+ *
+ * @pathparam region: the region-id
+ * @pathparam map: the map-id, see https://developer.riotgames.com/docs/static-data
+ * @pathparam queue: the queue the player used. One of https://github.com/HeroicKatora/DoransGuide/blob/master/src/lolstatic/__init__.py#QueueType
+ * @pathparam elo: the elo of the queue. https://github.com/HeroicKatora/DoransGuide/blob/master/src/lolstatic/__init__.py#EloType
+ * @pathparam champion: a champion-id, see https://developer.riotgames.com/docs/static-data
+ * @pathparam item: an item id, see https://developer.riotgames.com/docs/static-data
+ * @pathparam autoSubmit: if true, the above given request is automatically submitted, missing data defaults to 'ANY'
+ */
 doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'ChampionInfo', 'ItemInfo',
 	function ($scope, $routeParams, Stats, ChampionInfo, ItemInfo) {
 		$scope.pendingConfig = {};
@@ -103,24 +133,33 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 
 		$scope.selections = selections;
 		$scope.regions = [{id: 'ANY', name: 'Any Region'},
-						  {id: 'br', name: 'Brasil'},
-						  {id: 'na', name: 'North America'},
-						  {id: 'euw', name: 'Europe'},
-						  {id: 'las', name: 'Los Angeles South'},
-						  {id: 'lan', name: 'Los Angeles North'},
-						  {id: 'eune', name: 'Europe East'},
-						  {id: 'kr', name: 'Korea'},
-						  {id: 'ru', name: 'Russia'}];
+						  {id: 'BR', name: 'Brasil'},
+						  {id: 'NA', name: 'North America'},
+						  {id: 'EUW', name: 'Europe'},
+						  {id: 'LAS', name: 'Latin America South'},
+						  {id: 'LAN', name: 'Latin America North'},
+						  {id: 'EUNE', name: 'Europe East'},
+						  {id: 'KR', name: 'Korea'},
+						  {id: 'RU', name: 'Russia'},
+						  {id: 'TR', name: 'Turkey'},
+						  {id: 'OCE', name: 'Oceania'}];
 		$scope.patches = [{id: 'ANY', name: 'Any Patch'},
 						  {id: '5.11.1', name: 'Pre AP-Item Changes'},
 						  {id: '5.14.1', name: 'Post Ap-Item Changes'}];
 		$scope.maps = [{id: 'ANY', name: 'Any Map'},
 					   {id: '11', name: "Summoner's Rift"}];
 		$scope.queues = [{id: 'ANY', name: 'Any Queue'},
-						 {id: 'normal', name: 'Normal 5x5'},
-						 {id: 'ranked', name: 'Solo Ranked 5x5'}];
+						 {id: 'NORMAL_5x5_BLIND', name: 'Normal 5x5'},
+						 {id: 'RANKED_SOLO_5x5', name: 'Solo Ranked 5x5'}];
 		$scope.elos = [{id: 'ANY', name: 'Any Elo'},
-					   {id: 'gold', name: 'Gold'}];
+					   {id: 'CHALLENGER', name: 'Challenger'},
+					   {id: 'MASTER', name: 'Master'},
+					   {id: 'DIAMOND', name: 'Diamond'},
+					   {id: 'PLATINUM', name: 'Platinum'},
+					   {id: 'GOLD', name: 'Gold'},
+					   {id: 'SILVER', name: 'Silver'},
+					   {id: 'BRONZE', name: 'Bronze'},
+					   {id: 'UNRANKED', name: 'No rating'}];
 		ChampionInfo.get({patch: '5.14.1'},
 			function(champData) {
 				var array = _.sortBy(champData['data'], function(d) { return d.name;})
@@ -139,39 +178,44 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 				$scope.items = array;
 			}
 		);
-		$scope.roles = [{id: 'ANY', name: 'Any Role'}, {id: 'tank', name: 'Tank'}];
-		$scope.lanes = [{id: 'ANY', name: 'Any Lane'}, {id: 'bot', name: 'Bottom Lane'}];
+		// NEXT: if we had data from something else, it would make sense to add those queues here
+		$scope.roles = [{id: 'ANY', name: 'Any Role'},
+						{id: 'tank', name: 'Tank'}];
+		$scope.lanes = [{id: 'ANY', name: 'Any Lane'},
+						{id: 'bot', name: 'Bottom Lane'}];
 
 		$scope.currentDatas = [];
 
 		$scope.submit = function() {
+			$scope.currentDatas = [];
 			var currentConfigs = inputToConfigs($scope.pendingConfig);
-			$scope.currentDatas = _.map(currentConfigs, function (config) {
-				gold_time = {};
-				gold = {};
-				time = {};
-				overall = {};
-				Stats.get(config).$promise.then(function(data) {
-					// TODO: parse the data
-				});
-				return {gold_time: gold_time,
-						gold: gold,
-						time: time,
-						overall: overall
-				};
-			});
-		};
+			_.each(currentConfigs, function (config) {
+				Stats.get(config, function(data) {
 
-		$scope.submit();
+					if(!data) return;
+					$scope.currentDatas.push(data);
+				});
+			});
+			var statViewer = document.getElementById("dataview")
+			if(statViewer) statViewer.scrollIntoView(true);
+		};
+		if($routeParams.autoSubmit) $scope.submit();
 	}
 ]);
-
+/**
+ * The controller that handles errors.
+ *
+ * @pathparam code: the http-error code to set, e.g. 404
+ */
 doransGuide.controller('ErrorCtrl', ['$scope', '$routeParams',
 	function ($scope, $routeParams) {
 		$scope.error = $routeParams.code;
 	}
 ]);
-
+/**
+ * A filter that transforms an errorcode to a useful user-output
+ * @param error: the error code
+ */
 doransGuide.filter('errorshort', function() {
 	return function(error) {
 		switch(parseInt(error)) {
@@ -180,7 +224,12 @@ doransGuide.filter('errorshort', function() {
 		return "Unexpected error";
 	};
 });
-
+/**
+ * A filter that transforms an errorcode to a more extensive error,
+ * including html. Basically it blames the error on Nashor.
+ * 
+ * @param error: the error code
+ */
 doransGuide.filter('errorlong', function() {
 	return function(error) {
 		switch(parseInt(error)) {
@@ -189,7 +238,9 @@ doransGuide.filter('errorlong', function() {
 		return "Unexpected error";
 	};
 });
-
+/**
+ * Template for a specific input option
+ */
 doransGuide.filter('displaymodel',
 	function() {
 		return function(type) {
@@ -197,30 +248,59 @@ doransGuide.filter('displaymodel',
 		}
 	}
 );
-
+/**
+ * Transforms one set of data to its color-representation.
+ * The higher the percentage of won games, the more blue the color is, the lower, the red-isher. (yes, that is a word).
+ * Also, with more played games, data becomes more reliable and thus the opacity grows.
+ * 
+ * @param data: An object with the properties 'gamesWon' and 'gamesPlayed'
+ */
 doransGuide.filter('dataToColor',
 	function() {
 		return function(data) {
-			if(data === undefined || data == null) {
-				return 'red';
+			if(!data) {
+				return 'white';
 			}
 			won = data.gamesWon;
 			played = data.gamesPlayed;
 			ratio = won/played;
 			impact = played ? 1 - 1/played : 0;
-			blue = 255*ratio;
-			red = 255*(1-ratio);
-			return 'rgba(' + red + ', 0, ' + blue + ', ' + impact + ')';
+			blue = 255 * ratio;
+			red = 255 * (1-ratio);
+			return 'rgba(' + red + ', 0.1, ' + blue + ', ' + impact + ')';
 		}
 	}
 );
-
+/**
+ * Initializes a stat-viewer to display data in.
+ * 
+ * @attribute data: the data array to display
+ * @attribute mode: the display-mode, one in ['TIME_GOLD', 'GOLD', 'TIME', 'OVERALL']
+ */
 doransGuide.directive('statViewer', function() {
+	/**
+	 * A custom controller, to use the data
+	 */
+	var controller = ['$scope', function($scope) {
+		(function init() {
+			$scope.items = angular.copy($scope.datasource);
+		})();
+	}];
+
 	return {
-		templateUrl: 'templates/data/dataView.htm'
+		templateUrl: 'templates/data/dataView.htm',
+		scope: {
+			datasource: '=data',
+			mode: '='
+		},
+		controller: controller
 	};
 });
-
+/**
+ * Displays a champion-icon of the given champion
+ * 
+ * @attribute lolChamp: the championDTO-object to display (with an ImageDTO), see the API-docs 
+ */
 doransGuide.directive('champion', ['ChampionInfo', function(ChampionInfo) {
 	return {
 		templateUrl: 'templates/data/champion.htm',
@@ -251,7 +331,11 @@ doransGuide.directive('champion', ['ChampionInfo', function(ChampionInfo) {
 		}
 	};
 }]);
-
+/**
+ * Displays a item-icon of the given item
+ * 
+ * @attribute lolChamp: the itemDTO-object to display (with an ImageDTO), see the API-docs
+ */
 doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 	return {
 		templateUrl: 'templates/data/item.htm',
