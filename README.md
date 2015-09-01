@@ -55,11 +55,12 @@ are analyzed through the data that they hold.
 Command line arguments:
 
 option | arguments | effect
--------|-----------|-------
+-------|:-----------:|-------
 -k | apiKey | [required] Tells the application what api-key to use.
 
 The generated analysis is grouped into files and written to disk in blocks,
-in order to save memory. Each file follows the following rules:
+in order to save memory and a summary for each block is printed to the console. 
+Each file follows the following rules:
 * It is located in data/analysis/{region}/{patch}/{mapId}
 * Its name is {queue type}.{ranking}.json
 * Inside is a map in json format. Keys are string of the format
@@ -94,7 +95,7 @@ The events are then pickled into the directory data/raw the await further proces
 Command line arguments:
 
 option | arguments | effect
--------|-----------|-------
+-------|:-----------:|-------
 -k | apiKey | [required] Tells the application what api-key to use. The downloader will automatically change its speed when receiving 429 codes.
 -f | --- | Retry previously failed game. By default, the downloader will skip game ids that failed in previous runs
 
