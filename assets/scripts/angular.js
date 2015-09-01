@@ -26,7 +26,7 @@ var dataModule = angular.module('doransData', ['ngResource']);
 dataModule.factory('Stats', ['$resource',
 	function($resource) {
 		return {
-			get: function(config) {
+			get: function(config, succ_callback, fail_callback) {
 				var resource = $resource('data/analysis/:region/:patch/:map/:queue.:elo.json');
 				var fullpath = config.region + '/' +
 						config.patch + '/' +
@@ -42,9 +42,10 @@ dataModule.factory('Stats', ['$resource',
 											 map: config.map,
 											 queue: config.queue,
 											 elo: config.elo});
-				var data = response[fullpath];
-				console.log(data);
-				return data;
+				response.$promise.then(function(data) {
+					var jsonData = data[fullpath];
+					if(succ_callback) succ_callback(jsonData);
+				}, fail_callback);
 			}
 		}
 	}
@@ -129,7 +130,7 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 		selections.forEach(function(prop) {
 			$scope.pendingConfig[prop] = [{id: $routeParams[prop] || "ANY"}];
 		});
-		$scope.pendingConfig.patch = [{id: '5.11.1'}, {id: '5.14.1'}];
+		$scope.pendingConfig.patch = [{id: '5.11'}, {id: '5.14'}];
 
 		$scope.selections = selections;
 		$scope.regions = [{id: 'ANY', name: 'Any Region'},
@@ -144,8 +145,8 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						  {id: 'TR', name: 'Turkey'},
 						  {id: 'OCE', name: 'Oceania'}];
 		$scope.patches = [{id: 'ANY', name: 'Any Patch'},
-						  {id: '5.11.1', name: 'Pre AP-Item Changes'},
-						  {id: '5.14.1', name: 'Post Ap-Item Changes'}];
+						  {id: '5.11', name: 'Pre AP-Item Changes'},
+						  {id: '5.14', name: 'Post Ap-Item Changes'}];
 		$scope.maps = [{id: 'ANY', name: 'Any Map'},
 					   {id: '11', name: "Summoner's Rift"}];
 		$scope.queues = [{id: 'ANY', name: 'Any Queue'},
@@ -185,15 +186,78 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						{id: 'bot', name: 'Bottom Lane'}];
 
 		$scope.currentDatas = [];
-
+		/**
+		 * The submit button: Derive all configs the user wants to compare with each other and
+		 * derive their data sets.
+		 */
 		$scope.submit = function() {
 			$scope.currentDatas = [];
 			var currentConfigs = inputToConfigs($scope.pendingConfig);
+			var comparedConfigs = _.chain(allSelections)
+				.map(function(s) {
+					return $scope.pendingConfig[s].length > 1 ? s : undefined;
+				})
+				.reject(function(s) { return s === undefined; })
+				.value();
 			_.each(currentConfigs, function (config) {
 				Stats.get(config, function(data) {
-
 					if(!data) return;
-					$scope.currentDatas.push(data);
+					var title = _.chain(comparedConfigs)
+						.each(function(s) {
+							return config[s].name;
+						})
+						.reduce(function(stri, name) {
+							return stri + '|' + name;
+						}, '');
+					var viewconfig = {
+						timeAndGoldTable: {
+        					options: {
+        					},
+        					series: []
+						},
+						timeTable: {
+							options: {
+
+							},
+							series: []
+						},
+						goldTable: {
+							options: {
+
+							},
+							series: []
+						},
+						overall: {
+
+						}
+					};
+					for(var i = 0; i < data.timeAndGoldTable.length; i++) {
+						var time = i % 15;
+						var gold = Math.floor(i / 15);
+						var entry = data.timeAndGoldTable[i];
+						var won = entry ? entry[0] : 0;
+						var played = entry ? entry[1] : 0;
+						viewconfig.timeAndGoldTable.series.push(time, gold, played ? won/played : 0);
+					}
+					for(var i = 0; i < data.timeTable.length; i++) {
+						var entry = data.timeTable[i];
+						var won = entry ? entry[0] : 0;
+						var played = entry ? entry[1] : 0;
+						viewconfig.timeTable.series.push(i, played ? won/played : 0);
+					}
+					for(var i = 0; i < data.goldTable.length; i++) {
+						var entry = data.goldTable[i];
+						var won = entry ? entry[0] : 0;
+						var played = entry ? entry[1] : 0;
+						viewconfig.goldTable.series.push(i, played ? won/played : 0);
+					}
+					var entry = data.winStatistic;
+					var won = entry ? entry[0] : 0;
+					var played = entry ? entry[1] : 0;
+					viewconfig.overall.value = played ? won/played : 0;
+					$scope.currentDatas.push({
+						title: title,
+						data: viewconfig});
 				});
 			});
 			var statViewer = document.getElementById("dataview")
@@ -236,6 +300,17 @@ doransGuide.filter('errorlong', function() {
 			case 404: return 'Baron has eaten the page you are searching for. Go back to <a href="/">the start page</a> and try again.';
 		}
 		return "Unexpected error";
+	};
+});
+/**
+ * Transforms a value into its percentage representation
+ */
+doransGuide.filter('percentage', function() {
+	return function(input, max) {
+		if (isNaN(input)) {
+			return input;
+		}
+    	return Math.floor((input * 100) / max) + '%';
 	};
 });
 /**
@@ -291,9 +366,13 @@ doransGuide.directive('statViewer', function() {
 		templateUrl: 'templates/data/dataView.htm',
 		scope: {
 			datasource: '=data',
-			mode: '='
+			mode: '=',
+			title: '='
 		},
-		controller: controller
+		controller: controller,
+		compile: function(element, attrs){
+			if (!attrs.mode) { attrs.mode = 'TIME_GOLD'; }
+		},
 	};
 });
 /**
@@ -364,6 +443,23 @@ doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 			}
 	};
 }]);
+
+doransGuide.directive('heatMap', function(){
+	return {
+	    restrict: 'E',
+	    scope: {
+	        data: '='
+	    },
+	    template: '<div container></div>',
+	    link: function(scope, ele, attr){
+	        scope.heatmapInstance = h337.create({
+	          container: ele.find('div')[0]
+	        });
+	        scope.heatmapInstance.setData(scope.data);
+	    }
+
+	};
+});
 
 doransGuide.config(['$routeProvider', '$locationProvider',
 	function ($routeProvider, $locationProvider) {
