@@ -236,7 +236,8 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 		);
 		ItemInfo.get({patch: '5.14.1'},
 			function(itemData) {
-				var array = _.sortBy(itemData['data'], function(d) { return d.name;})
+				var array = _.sortBy(itemData['data'], function(d) { return d.name;});
+				// _.filter(array, function(d) { apItems.contains(d.id) });
 				array.unshift(
 						{id: 'ANY',
 						name: 'Any'});
