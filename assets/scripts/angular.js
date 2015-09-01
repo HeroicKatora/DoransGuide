@@ -46,6 +46,7 @@ dataModule.factory('Stats', ['$resource',
 					var jsonData = data[fullpath];
 					if(succ_callback) succ_callback(jsonData);
 				}, fail_callback);
+				return response;
 			}
 		}
 	}
