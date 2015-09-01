@@ -84,7 +84,7 @@ def mapKeyToResourceIdentifier(keyt):
                        str(keyt.itemId),
                        keyt.role.value,
                        keyt.lane.value)
-    return os.path.join(*folderNameTuple)
+    return '/'.join(folderNameTuple)
 
 fileguard = FileGuard()
 
