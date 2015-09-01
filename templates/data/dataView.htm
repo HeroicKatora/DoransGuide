@@ -4,9 +4,18 @@
 	</div>
 	<div class="content" ng-switch on="mode">
 		<div ng-switch-when="TIME_GOLD">
-			<table>
-				<tr ng-repeat="timerow in datasource.timeAndGoldTable.series track by $index">
-					<td ng-repeat="cell in timerow track by $index">
+			Win rates:
+			<table style="border-collapse: collapse;">
+				<tr style="border: none;">
+					<th>Gold advantage</th>
+					<th ng-repeat="timerow in datasource.timeAndGoldTable.series[0] track by $index"
+							style="border-right: solid 3px #ccc; border-left: solid 3px #ccc;">
+						{{10*$index}}min - {{10*$index + 10}}min
+					</th>
+				</tr>
+				<tr style="border: none;" ng-repeat="timerow in datasource.timeAndGoldTable.series track by $index">
+					<td>{{(8-$index)*3}}k / {{(7-$index)*3}}k</td>
+					<td ng-repeat="cell in timerow track by $index" style="border-right: solid 3px #ccc; border-left: solid 3px #ccc;">
 						{{ cell | percentage:4}}
 					</td>
 				</tr>

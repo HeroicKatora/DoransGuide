@@ -270,7 +270,7 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 					if(!data) return;
 					var title = _.chain(comparedConfigs)
 						.map(function(s) {
-							return "Unknown";
+							return "Unknown comparison";
 						})
 						.reduce(function(stri, name) {
 							return stri + ' | ' + name;
