@@ -13,8 +13,12 @@ WinStatistic = namedtuple("WinStatistic", "gameCount gamesWon")
 TimeGoldSpread = namedtuple("TimeGoldSpread", "timeAndGoldTable timeTable goldTable winStatistic")
 
 def mergeTimeGoldSpreadJson(tgs1, tgs2AsJson):
-    if not tgs2AsJson: return tgs1
-    tgs2 = TimeGoldSpread(*tgs2AsJson)
+    try:
+        tgs2 = TimeGoldSpread(tgs2AsJson['timeAndGoldTable'], 
+                              tgs2AsJson['timeTable'], 
+                              tgs2AsJson['goldTable'],
+                              tgs2AsJson['winStatistic'])
+    except: return tgs1
     if not tgs1: return tgs2
     return TimeGoldSpread([mergeWinStatisticsJson(el[0], el[1]) for el in zip(tgs1.timeAndGoldTable, tgs2.timeAndGoldTable)],
                           [mergeWinStatisticsJson(el[0], el[1]) for el in zip(tgs1.timeTable, tgs2.timeTable)],
@@ -28,10 +32,10 @@ def mergeWinStatisticsJson(ws1, ws2AsJson):
     return WinStatistic(ws1.gameCount+ws2.gameCount, ws1.gamesWon+ws2.gamesWon)
 
 def timeGoldSpreadToJson(tgs):
-    return ([winStatisticToJson(ws) for ws in tgs.timeAndGoldTable],
-            [winStatisticToJson(ws) for ws in tgs.timeTable],
-            [winStatisticToJson(ws) for ws in tgs.goldTable],
-            winStatisticToJson(tgs.winStatistic))
+    return {'timeAndGoldTable':[winStatisticToJson(ws) for ws in tgs.timeAndGoldTable],
+            'timeTable':[winStatisticToJson(ws) for ws in tgs.timeTable],
+            'goldTable':[winStatisticToJson(ws) for ws in tgs.goldTable],
+            'winStatistic':winStatisticToJson(tgs.winStatistic)}
 
 def winStatisticToJson(ws):
     if not ws: return None
