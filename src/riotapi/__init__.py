@@ -16,6 +16,7 @@ parser.add_option("-f", "--failed", action="store_false", dest="ignoreFailedFile
 parser.add_option("-k", default = False, action="store", dest="key", type="string", help="Retry previously failed game ids")
 if not parser.parse_args(sys.argv)[0].key:
     print("To work correctly, the api needs to have a key")
+    print("Start again with option -k <key>")
     sys.exit(-1)
 
 class AnswerException(Exception):
