@@ -69,3 +69,8 @@ body {
 .panel-body {
 	background-color: #1E1E1E;
 }
+
+
+.dropdown-menu {
+	background-color: #333;
+}

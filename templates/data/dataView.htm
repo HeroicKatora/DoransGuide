@@ -1,29 +1,27 @@
-<div class="container" ng-switch on="mode">
-	<!--- items: The data in the format
-			dataDTO = (games_won, games_played)
-			itemsDTO = {
-				timeAndGoldTable: [[dataDTO for timeSlice] for goldSlice],
-				goldTable: [dataDTO for goldSlice],
-				timeTable: [dataDTO for timeSlice],
-				winStatistic: dataDTO
-			}
-		-->
-	<div ng-switch-when="TIME_GOLD">
-		<div class="table-label-y">
-		<table class="statview">
-			<tr class="statrow" ng-repeat="row in data.timeAndGoldTable">
-				<td class="statcell" ng-repeat="cell in row" ng-style="{background-color: cell | dataToColor }">
-				</td>
-			</tr>
-		</table>
+<div class="container">
+	<div class="header" ng-show="title">
+		<h3>{{ title }}</h3>
 	</div>
-	<div ng-switch-when="TIME">
-		TIME ONLY
-	</div>
-	<div ng-switch-when="GOLD">
-		GOLD ONLY
-	</div>
-	<div ng-switch-default>
-		OVERALL
+	<div class="content" ng-switch on="mode">
+		<div ng-switch-when="TIME_GOLD">
+			<table>
+				<tr ng-repeat="timerow in datasource.timeAndGoldTable.series track by $index">
+					<td ng-repeat="cell in timerow track by $index">
+						{{ cell | percentage:4}}
+					</td>
+				</tr>
+			</table>
+			Missing framework to display data :( It is parsed though (see console)
+		</div>
+		<div ng-switch-when="TIME">
+			Missing framework to display data :( It is parsed though (see console)
+		</div>
+		<div ng-switch-when="GOLD">
+			Missing framework to display data :( It is parsed though (see console)
+		</div>
+		<div ng-switch-default>
+			Overall Winrate:<br>
+			{{datasource.overall.value | percentage}}
+		</div>
 	</div>
 </div>

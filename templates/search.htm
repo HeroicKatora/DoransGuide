@@ -14,11 +14,29 @@
 <div style="height: 20px"></div>
 <div id="dataview" class="container">
 	<div class="header">
-		<h3>Search results:</h3>
+		<div class="fullspan">
+			<h3>Search results:</h3>
+			<div class="pull-right">
+				<div class="btn-group" dropdown>
+					<button id="btn-append-to-body" type="button" class="btn btn-primary" dropdown-toggle>
+						Display Options<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu" role="menu" aria-labelledby="single-button">
+						<li role="menuitem"><a href="#" ng-click="displaymode='TIME_GOLD'">Show times and gold</a></li>
+						<!--li role="menuitem"><a href="#" ng-click="displaymode='GOLD'">Show only gold</a></li>
+						<li role="menuitem"><a href="#" ng-click="displaymode='TIME'">Show only time</a></li-->
+						<li role="menuitem"><a href="#" ng-click="displaymode='OVERALL'">Show overall</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
 	</div>
 	<div class="content">
-		<div ng-repeat="data in currentDatas track by $index" style="float: left;">
-			<stat-viewer data="data"></stat-viewer>
+		<div ng-repeat="dataObj in currentDatas track by $index" style="float: left; margin: 20px;">
+			<stat-viewer data="dataObj.data" title="dataObj.title" mode="displaymode"></stat-viewer>
 		</div>
+		<!--div ng-view="currentDatas.length == 0">
+			No data for the selected parameters. (Did you select an AP item? - The other items show up only to display extensibility)
+		</div-->
 	</div>
 </div>

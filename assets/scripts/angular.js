@@ -26,7 +26,7 @@ var dataModule = angular.module('doransData', ['ngResource']);
 dataModule.factory('Stats', ['$resource',
 	function($resource) {
 		return {
-			get: function(config) {
+			get: function(config, succ_callback, fail_callback) {
 				var resource = $resource('data/analysis/:region/:patch/:map/:queue.:elo.json');
 				var fullpath = config.region + '/' +
 						config.patch + '/' +
@@ -42,9 +42,11 @@ dataModule.factory('Stats', ['$resource',
 											 map: config.map,
 											 queue: config.queue,
 											 elo: config.elo});
-				var data = response[fullpath];
-				console.log(data);
-				return data;
+				response.$promise.then(function(data) {
+					var jsonData = data[fullpath];
+					if(succ_callback) succ_callback(jsonData);
+				}, fail_callback);
+				return response;
 			}
 		}
 	}
@@ -80,8 +82,72 @@ dataModule.factory('ChampionInfo', ['$resource',
 	}
 ]);
 
+var doransServices = angular.module('services',[]);
+/**
+ * Transforms one set of data to its color-representation.
+ * The higher the percentage of won games, the more blue the color is, the lower, the red-isher. (yes, that is a word).
+ * Also, with more played games, data becomes more reliable and thus the opacity grows.
+ * 
+ * @param data: An object with the properties 'gamesWon' and 'gamesPlayed'
+ */
+doransServices.filter('dataToColor',
+	function() {
+		return function(data) {
+			if(!data) {
+				return 'white';
+			}
+			won = data.gamesWon;
+			played = data.gamesPlayed;
+			ratio = won/played;
+			impact = played ? 1 - 1/played : 0;
+			blue = 255 * ratio;
+			red = 255 * (1-ratio);
+			return 'rgba(' + red + ', 0.1, ' + blue + ', ' + impact + ')';
+		}
+	}
+);
 
-var doransGuide = angular.module('doransGuide', ['doransData', 'ngRoute', 'ngSanitize', 'ui.bootstrap']);
+/**
+ * A filter that transforms an errorcode to a useful user-output
+ * @param error: the error code
+ */
+doransServices.filter('errorshort', function() {
+	return function(error) {
+		switch(parseInt(error)) {
+			case 404: return "File not found";
+		}
+		return "Unexpected error";
+	};
+});
+/**
+ * A filter that transforms an errorcode to a more extensive error,
+ * including html. Basically it blames the error on Nashor.
+ * 
+ * @param error: the error code
+ */
+doransServices.filter('errorlong', function() {
+	return function(error) {
+		switch(parseInt(error)) {
+			case 404: return 'Baron has eaten the page you are searching for. Go back to <a href="/">the start page</a> and try again.';
+		}
+		return "Unexpected error";
+	};
+});
+/**
+ * Transforms a value into its percentage representation
+ */
+doransServices.filter('percentage', function() {
+	return function(input, length) {
+		if(!length) length = 3;
+		console.log("Invoked!");
+		if (isNaN(input)) {
+			return input;
+		}
+    	return Math.floor(input * Math.pow(10, length)) / Math.pow(10, length - 2)+ '%';
+	};
+});
+
+var doransGuide = angular.module('doransGuide', ['services', 'doransData', 'ngRoute', 'ngSanitize', 'ui.bootstrap']);
 
 var MODE_BOTH = 0;
 var MODE_TIME = 1;
@@ -129,7 +195,7 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 		selections.forEach(function(prop) {
 			$scope.pendingConfig[prop] = [{id: $routeParams[prop] || "ANY"}];
 		});
-		$scope.pendingConfig.patch = [{id: '5.11.1'}, {id: '5.14.1'}];
+		$scope.pendingConfig.patch = [{id: '5.11'}, {id: '5.14'}];
 
 		$scope.selections = selections;
 		$scope.regions = [{id: 'ANY', name: 'Any Region'},
@@ -144,8 +210,8 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						  {id: 'TR', name: 'Turkey'},
 						  {id: 'OCE', name: 'Oceania'}];
 		$scope.patches = [{id: 'ANY', name: 'Any Patch'},
-						  {id: '5.11.1', name: 'Pre AP-Item Changes'},
-						  {id: '5.14.1', name: 'Post Ap-Item Changes'}];
+						  {id: '5.11', name: 'Pre AP-Item Changes'},
+						  {id: '5.14', name: 'Post Ap-Item Changes'}];
 		$scope.maps = [{id: 'ANY', name: 'Any Map'},
 					   {id: '11', name: "Summoner's Rift"}];
 		$scope.queues = [{id: 'ANY', name: 'Any Queue'},
@@ -171,7 +237,8 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 		);
 		ItemInfo.get({patch: '5.14.1'},
 			function(itemData) {
-				var array = _.sortBy(itemData['data'], function(d) { return d.name;})
+				var array = _.sortBy(itemData['data'], function(d) { return d.name;});
+				// _.filter(array, function(d) { apItems.contains(d.id) });
 				array.unshift(
 						{id: 'ANY',
 						name: 'Any'});
@@ -185,15 +252,84 @@ doransGuide.controller('SearchCtrl', ['$scope', '$routeParams', 'Stats', 'Champi
 						{id: 'bot', name: 'Bottom Lane'}];
 
 		$scope.currentDatas = [];
-
+		/**
+		 * The submit button: Derive all configs the user wants to compare with each other and
+		 * derive their data sets.
+		 */
 		$scope.submit = function() {
 			$scope.currentDatas = [];
 			var currentConfigs = inputToConfigs($scope.pendingConfig);
+			var comparedConfigs = _.chain(allSelections)
+				.map(function(s) {
+					return $scope.pendingConfig[s].length > 1 ? s : undefined;
+				})
+				.reject(function(s) { return s === undefined; })
+				.value();
 			_.each(currentConfigs, function (config) {
 				Stats.get(config, function(data) {
-
 					if(!data) return;
-					$scope.currentDatas.push(data);
+					var title = _.chain(comparedConfigs)
+						.map(function(s) {
+							return "Unknown";
+						})
+						.reduce(function(stri, name) {
+							return stri + ' | ' + name;
+						}, '')
+						.value().substring(3);
+					var viewconfig = {
+						timeAndGoldTable: {
+        					options: {
+        					},
+        					series: []
+						},
+						timeTable: {
+							options: {
+
+							},
+							series: []
+						},
+						goldTable: {
+							options: {
+
+							},
+							series: []
+						},
+						overall: {
+
+						}
+					};
+					for(var i = 0; i < data.timeAndGoldTable.length; i++) {
+						var time = i % 7;
+						var gold = Math.floor(i / 7);
+						var entry = data.timeAndGoldTable[i];
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						if(time == 0)
+							viewconfig.timeAndGoldTable.series.unshift([]);
+						viewconfig.timeAndGoldTable.series[0].push(played != 0 ? won/played : 0);
+						console.log(viewconfig.timeAndGoldTable.series);
+					}
+					for(var i = 0; i < data.timeTable.length; i++) {
+						var entry = data.timeTable[i];
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						viewconfig.timeTable.series.push(i, played != 0 ? won/played : 0);
+					}
+					for(var i = 0; i < data.goldTable.length; i++) {
+						var entry = data.goldTable[i];
+						var won = entry ? entry[1] : 0;
+						var played = entry ? entry[0] : 0;
+						viewconfig.goldTable.series.push(i, played != 0 ? won/played : 0);
+					}
+					var entry = data.winStatistic;
+					var won = entry ? entry[1] : 0;
+					var played = entry ? entry[0] : 0;
+					viewconfig.overall.value = played != 0 ? won/played : 0;
+					$scope.currentDatas.push({
+						title: title,
+						data: viewconfig
+					});
+					console.log($scope.currentDatas);
 				});
 			});
 			var statViewer = document.getElementById("dataview")
@@ -213,6 +349,7 @@ doransGuide.controller('ErrorCtrl', ['$scope', '$routeParams',
 	}
 ]);
 /**
+<<<<<<< HEAD
  * A controller that fetches data for the direct comparison on the front page
  */
 doransGuide.controller('CompareCtrl', ['$q', '$scope', '$routeParams', '$resource',
@@ -282,35 +419,14 @@ doransGuide.filter('errorlong', function() {
 	};
 });
 /**
+=======
+>>>>>>> 45152dc78aeb702ba4eee2592604bf439fd12132
  * Template for a specific input option
  */
 doransGuide.filter('displaymodel',
 	function() {
 		return function(type) {
 			return 'templates/inputs/' + type + '.htm';
-		}
-	}
-);
-/**
- * Transforms one set of data to its color-representation.
- * The higher the percentage of won games, the more blue the color is, the lower, the red-isher. (yes, that is a word).
- * Also, with more played games, data becomes more reliable and thus the opacity grows.
- * 
- * @param data: An object with the properties 'gamesWon' and 'gamesPlayed'
- */
-doransGuide.filter('dataToColor',
-	function() {
-		return function(data) {
-			if(!data) {
-				return 'white';
-			}
-			won = data.gamesWon;
-			played = data.gamesPlayed;
-			ratio = won/played;
-			impact = played ? 1 - 1/played : 0;
-			blue = 255 * ratio;
-			red = 255 * (1-ratio);
-			return 'rgba(' + red + ', 0.1, ' + blue + ', ' + impact + ')';
 		}
 	}
 );
@@ -334,9 +450,13 @@ doransGuide.directive('statViewer', function() {
 		templateUrl: 'templates/data/dataView.htm',
 		scope: {
 			datasource: '=data',
-			mode: '='
+			mode: '=',
+			title: '='
 		},
-		controller: controller
+		controller: controller,
+		compile: function(element, attrs){
+			if (!attrs.mode) { attrs.mode = 'TIME_GOLD'; }
+		}
 	};
 });
 /**
@@ -407,6 +527,23 @@ doransGuide.directive('itemLol', ['ItemInfo', function(ItemInfo) {
 			}
 	};
 }]);
+
+/*doransGuide.directive('heatMap', function(){
+	return {
+	    restrict: 'E',
+	    scope: {
+	        data: '='
+	    },
+	    template: '<div container></div>',
+	    link: function(scope, ele, attr){
+	        scope.heatmapInstance = h337.create({
+	          container: ele.find('div')[0]
+	        });
+	        scope.heatmapInstance.setData(scope.data);
+	    }
+
+	};
+});*/
 
 doransGuide.config(['$routeProvider', '$locationProvider',
 	function ($routeProvider, $locationProvider) {
